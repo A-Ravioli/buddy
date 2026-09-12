@@ -24,7 +24,11 @@ include(":core:triage")
 include(":core:entities")
 include(":core:cognition")
 include(":core:audio")
+include(":core:policy")
+include(":core:actuation")
+include(":core:style")
 include(":eval:replay")
+include(":eval:injection")
 
 // The Android app (core/android) is not a Gradle module. It uses platform and system
 // APIs (the content capture service, for one) that the public SDK does not expose, so

@@ -13,6 +13,7 @@
     <string name="brief_running">Running a cycle…</string>
     <string name="brief_status">Last brief: %1$s. %2$d waiting for you. Tap to refresh.</string>
     <string name="brief_queue_empty">Nothing waiting for you.</string>
+    <string name="undo_done">Undone. buddy will remember.</string>
     <plurals name="brief_needs_you">
         <item quantity="one">%d thing needs you</item>
         <item quantity="other">%d things need you</item>

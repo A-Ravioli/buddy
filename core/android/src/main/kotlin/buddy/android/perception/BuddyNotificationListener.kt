@@ -18,6 +18,7 @@ import buddy.perception.NotificationSnapshot
 class BuddyNotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
+        instance = this
         Log.i(BuddyApp.TAG, "notification listener connected")
         // Backfill whatever is currently posted so the ledger starts full.
         activeNotifications?.forEach { onNotificationPosted(it) }
@@ -39,7 +40,16 @@ class BuddyNotificationListener : NotificationListenerService() {
         // on notifications and needs to know what the user dismissed.
     }
 
+    override fun onListenerDisconnected() {
+        if (instance === this) instance = null
+    }
+
     companion object {
+        /** The connected listener, for connectors that act through notification actions. */
+        @Volatile
+        var instance: BuddyNotificationListener? = null
+            private set
+
         fun snapshot(context: Context, sbn: StatusBarNotification): NotificationSnapshot {
             val n = sbn.notification
             val extras = n.extras

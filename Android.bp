@@ -57,12 +57,41 @@ java_import {
 }
 
 java_library {
+    name: "buddy-policy",
+    srcs: ["core/policy/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
+    name: "buddy-style",
+    srcs: ["core/style/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+// Actuation includes the mail connector, whose jakarta.mail dependency rides in the
+// cognition prebuilts (copyCloudDeps copies the whole runtime classpath).
+java_library {
+    name: "buddy-actuation",
+    srcs: ["core/actuation/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger", "buddy-policy", "buddy-cognition-deps"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
     name: "buddy-cognition",
     srcs: ["core/cognition/src/main/kotlin/**/*.kt"],
     static_libs: [
         "buddy-ledger",
         "buddy-triage",
         "buddy-entities",
+        "buddy-policy",
+        "buddy-actuation",
+        "buddy-style",
         "buddy-cognition-deps",
     ],
     sdk_version: "system_current",
@@ -80,6 +109,9 @@ android_app {
         "buddy-triage",
         "buddy-entities",
         "buddy-audio",
+        "buddy-policy",
+        "buddy-actuation",
+        "buddy-style",
         "buddy-cognition",
     ],
     // System APIs (ContentCaptureService) and, later, hidden ones. platform_apis

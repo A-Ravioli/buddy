@@ -28,6 +28,7 @@ import kotlin.concurrent.thread
  */
 object BriefScheduler {
     const val ACTION_CYCLE = "app.buddy.action.BRIEF_CYCLE"
+    const val ACTION_HOLDS = "app.buddy.action.RELEASE_HOLDS"
     const val EXTRA_CYCLE = "cycle"
     private const val CHANNEL = "brief"
     private const val NOTIFICATION_ID = 2
@@ -86,7 +87,30 @@ object BriefScheduler {
         window.reverse()
         val decisions = window.filter { it.kind == EventKind.TRIAGE }.mapNotNull(TriageRecorder::fromEvent).associateBy { it.eventId }
         val subjects = window.filter { it.kind != EventKind.TRIAGE && it.kind != EventKind.BRIEF }
+        // Phase 2: act on the work items first, so the brief reports what was done.
+        Brain.actPlanner?.let { act ->
+            val hour = java.time.ZonedDateTime.now().hour
+            val codes = subjects.flatMap(buddy.cognition.Envelope::codes).toSet()
+            val report = act.act(subjects, decisions, now, hour, codes, spentToday = emptyMap())
+            Log.i(BuddyApp.TAG, "act cycle: ${report.outcomes.size} proposals, agent=${report.agent?.status}")
+        }
         return planner.plan(subjects, decisions, now, cycle)
+    }
+
+    /** Releases held actions whose hold has expired. Called by the hold alarm every few minutes. */
+    fun releaseDueHolds() {
+        val exec = Brain.executor ?: return
+        for ((held, _) in exec.dueHolds()) {
+            val done = exec.release(held)
+            Log.i(BuddyApp.TAG, "released hold ${held.id}: ${done.structured["state"]}")
+        }
+    }
+
+    fun scheduleHoldRelease(context: Context) {
+        val am = context.getSystemService(AlarmManager::class.java)
+        val intent = Intent(context, CycleReceiver::class.java).setAction(ACTION_HOLDS)
+        val pi = PendingIntent.getBroadcast(context, 77, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5 * 60_000L, 5 * 60_000L, pi)
     }
 
     private fun post(context: Context, p: Planned) {
@@ -110,10 +134,14 @@ object BriefScheduler {
 
     class CycleReceiver : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action != ACTION_CYCLE) return
-            val cycle = intent.getStringExtra(EXTRA_CYCLE) ?: "adhoc"
-            runCycle(context, cycle)
-            schedule(context) // re-arm tomorrow's alarm
+            when (intent.action) {
+                ACTION_HOLDS -> thread(name = "buddy-holds") { releaseDueHolds() }
+                ACTION_CYCLE -> {
+                    val cycle = intent.getStringExtra(EXTRA_CYCLE) ?: "adhoc"
+                    runCycle(context, cycle)
+                    schedule(context) // re-arm tomorrow's alarm
+                }
+            }
         }
     }
 }

@@ -21,6 +21,7 @@ class BriefActivity : Activity() {
     private lateinit var spoken: TextView
     private lateinit var status: TextView
     private lateinit var queue: ListView
+    private var held: List<buddy.ledger.Event> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,7 +63,21 @@ class BriefActivity : Activity() {
             val what = e?.text?.replace('\n', ' ')?.take(100) ?: e?.structured?.entries?.joinToString(" ") { "${it.key}=${it.value}" } ?: ""
             (if (d.urgent) "URGENT " else "") + "$who: $what"
         }
+        // Held actions: shown with their release time; tapping one vetoes it.
+        val exec = buddy.android.cognition.Brain.executor
+        held = recent.filter { it.kind == EventKind.ACTION && it.structured["state"] == "held" && ledger.corrections(it.id).isEmpty() }
+        val heldLines = held.map { h ->
+            val untilMin = ((h.structured["until"]?.toLongOrNull() ?: 0L) - System.currentTimeMillis()) / 60_000L
+            "HELD ${h.structured["action"]} to ${h.structured["target"] ?: "self"} in ${untilMin.coerceAtLeast(0)} min: ${h.structured["p_text"] ?: h.text ?: ""} (tap to veto)"
+        }
         status.text = getString(R.string.brief_status, brief?.structured?.get("source") ?: "none", escalated.size)
-        queue.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, lines.ifEmpty { listOf(getString(R.string.brief_queue_empty)) })
+        val all = heldLines + lines
+        queue.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, all.ifEmpty { listOf(getString(R.string.brief_queue_empty)) })
+        queue.setOnItemClickListener { _, _, position, _ ->
+            if (position < held.size && exec != null) {
+                exec.veto(held[position])
+                refresh()
+            }
+        }
     }
 }
