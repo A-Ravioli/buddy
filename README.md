@@ -20,6 +20,7 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | [docs/05-roadmap.md](docs/05-roadmap.md) | Phased build plan with milestones, metrics, and repo layout |
 | [docs/06-open-questions.md](docs/06-open-questions.md) | Decisions made, what is still open, and known risks |
 | [docs/phase-0.md](docs/phase-0.md) | Phase 0 status: what exists, what is verified, what needs the build host or the phone |
+| [docs/phase-1.md](docs/phase-1.md) | Phase 1 status: triage, entities, the brief, the audio gate, the eval harness |
 
 ## Repository layout
 
@@ -27,6 +28,11 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 |---|---|
 | `core/ledger` | The life ledger: schema, append-only rules, ids, search. JVM, tested. |
 | `core/perception` | Normalisers from platform snapshots to ledger events. JVM, tested. |
+| `core/triage` | The five-way triage decision and structured field extraction. JVM, tested. |
+| `core/entities` | People across apps, threads, recurring charges. JVM, tested. |
+| `core/cognition` | Context slices, untrusted envelopes, the Claude client, the brief planner. JVM, tested. |
+| `core/audio` | When transcription may run: off-limits rules, daily budget, participant rule. JVM, tested. |
+| `eval/replay` | Replay a ledger through triage and score it against labels. |
 | `core/android` | The buddy system app. Built by Soong inside the GrapheneOS tree. |
 | `platform/` | Product config, overlays, permissions, SELinux, patch specs, build scripts. |
 | `Android.bp` | Soong modules for the app and its config, read when this repo is `vendor/buddy`. |
@@ -34,7 +40,7 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 Run the JVM tests anywhere with a JDK 17 or newer:
 
 ```
-./gradlew :core:ledger:test :core:perception:test
+./gradlew build
 ```
 
 ## The one-paragraph version

@@ -20,6 +20,11 @@ rootProject.name = "buddy"
 // without an Android SDK.
 include(":core:ledger")
 include(":core:perception")
+include(":core:triage")
+include(":core:entities")
+include(":core:cognition")
+include(":core:audio")
+include(":eval:replay")
 
 // The Android app (core/android) is not a Gradle module. It uses platform and system
 // APIs (the content capture service, for one) that the public SDK does not expose, so

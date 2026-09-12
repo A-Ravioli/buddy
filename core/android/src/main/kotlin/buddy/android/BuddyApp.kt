@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.UserManager
 import android.util.Log
+import buddy.android.cognition.Brain
+import buddy.android.cognition.BriefScheduler
 import buddy.android.ledger.LedgerHolder
 import buddy.android.perception.Ingest
 import buddy.android.perception.PerceptionService
@@ -14,7 +16,9 @@ class BuddyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         LedgerHolder.init(this)
+        Brain.init(this)
         Ingest.init(this)
+        BriefScheduler.schedule(this)
         if (getSystemService(UserManager::class.java).isUserUnlocked) {
             LedgerHolder.onUserUnlocked()
         }

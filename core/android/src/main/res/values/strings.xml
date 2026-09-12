@@ -6,4 +6,15 @@
     <string name="perception_channel">buddy perception</string>
     <string name="perception_running">buddy is observing</string>
     <string name="stub_not_yet">Not in this phase yet.</string>
+    <string name="brief_channel">buddy brief</string>
+    <string name="brief_title">buddy brief</string>
+    <string name="brief_nothing">Nothing needs you</string>
+    <string name="brief_none_yet">No brief yet. Tap below to run one.</string>
+    <string name="brief_running">Running a cycle…</string>
+    <string name="brief_status">Last brief: %1$s. %2$d waiting for you. Tap to refresh.</string>
+    <string name="brief_queue_empty">Nothing waiting for you.</string>
+    <plurals name="brief_needs_you">
+        <item quantity="one">%d thing needs you</item>
+        <item quantity="other">%d things need you</item>
+    </plurals>
 </resources>

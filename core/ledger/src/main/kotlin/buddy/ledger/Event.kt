@@ -36,6 +36,10 @@ enum class EventKind {
     ACTION,
     /** A user correction of an earlier event or action. */
     CORRECTION,
+    /** A triage decision about another event (see core/triage). */
+    TRIAGE,
+    /** A brief produced by a planning cycle (see core/cognition). */
+    BRIEF,
 }
 
 /**

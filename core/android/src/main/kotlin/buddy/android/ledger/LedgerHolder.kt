@@ -23,6 +23,9 @@ object LedgerHolder {
 
     @Volatile
     private var ledger: Ledger? = null
+
+    @Volatile
+    private var sqlDriver: FrameworkSqlDriver? = null
     private val listeners = ArrayList<() -> Unit>()
 
     fun init(context: Context) {
@@ -31,6 +34,9 @@ object LedgerHolder {
 
     /** The ledger, or null before the first unlock. */
     fun getOrNull(): Ledger? = ledger
+
+    /** The underlying driver, for the derived stores that share the database. Null before unlock. */
+    fun driver(): buddy.ledger.SqlDriver? = sqlDriver
 
     fun get(): Ledger = ledger ?: error("ledger not available before user unlock")
 
@@ -53,7 +59,9 @@ object LedgerHolder {
         val dir = File(appContext.filesDir, "ledger").apply { mkdirs() }
         val db = SQLiteDatabase.openOrCreateDatabase(File(dir, "ledger.db"), null)
         db.enableWriteAheadLogging()
-        ledger = SqliteLedger(FrameworkSqlDriver(db))
+        val driver = FrameworkSqlDriver(db)
+        sqlDriver = driver
+        ledger = SqliteLedger(driver)
         Log.i(BuddyApp.TAG, "ledger opened, ${ledger!!.count()} events")
         drainListeners()
     }

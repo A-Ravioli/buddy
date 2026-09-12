@@ -27,6 +27,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Phase 1: the cloud planning cycle and its alarms. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
         android:name="buddy.android.BuddyApp"
@@ -85,6 +89,26 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+
+        <!-- Notification assistant: runs before a notification is shown and can hide it.
+             Assigned by config_defaultAssistantAccessComponent in the overlay. -->
+        <service
+            android:name="buddy.android.perception.BuddyNotificationAssistant"
+            android:exported="true"
+            android:permission="android.permission.BIND_NOTIFICATION_ASSISTANT_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationAssistantService" />
+            </intent-filter>
+        </service>
+
+        <!-- The brief and the escalation queue. -->
+        <activity
+            android:name="buddy.android.ui.BriefActivity"
+            android:exported="true"
+            android:launchMode="singleTop" />
+        <receiver
+            android:name="buddy.android.cognition.BriefScheduler$CycleReceiver"
+            android:exported="false" />
 
         <!-- Content capture: the framework streams every app's view text here. Assigned
              by config_defaultContentCaptureService in the overlay. -->
