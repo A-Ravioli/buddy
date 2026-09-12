@@ -152,8 +152,10 @@ model still has to pass a policy engine it cannot talk to except through a typed
 proposal.
 
 
-- Ledger and profile encrypted at rest with a key in the hardware keystore, bound to
-  the lock credential. A stolen unlocked phone is the residual risk, same as today.
+- Ledger and profile live in credential-encrypted storage, so they are encrypted at
+  rest with a key in the hardware keystore bound to the lock credential and cannot be
+  opened before the first unlock. A stolen unlocked phone is the residual risk, same
+  as today.
 - buddy's own privileged surface (system services, framework hooks) is signed with the
   platform key; no other app can obtain it.
 - Connector credentials (OAuth tokens, app passwords) live in the keystore-backed

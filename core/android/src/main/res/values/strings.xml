@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">buddy</string>
+    <string name="timeline_empty">Nothing observed yet.</string>
+    <string name="timeline_title">buddy timeline</string>
+    <string name="perception_channel">buddy perception</string>
+    <string name="perception_running">buddy is observing</string>
+    <string name="stub_not_yet">Not in this phase yet.</string>
+</resources>

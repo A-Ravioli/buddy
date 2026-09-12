@@ -92,7 +92,7 @@ weight signal and are always consolidated into a note.
 
 | Data | Where it lives | Who sees it |
 |---|---|---|
-| Ledger, entity graph, index | Device only, SQLCipher, key in hardware keystore bound to the lock credential | Nobody but the device |
+| Ledger, entity graph, index | Device only, in credential-encrypted storage (the platform's file-based encryption, key in the hardware keystore bound to the lock credential) | Nobody but the device |
 | Transcripts of conversations and calls | Device only, same store, flagged by consent state | Nobody but the device; never included in a cloud slice unless the task is about that conversation and the user has allowed it |
 | Screen content from content capture | Device only; parsed into events, raw view dumps discarded after parsing | Nobody but the device |
 | Voice embeddings | Keystore-backed store, not the ledger | Nobody but the device |

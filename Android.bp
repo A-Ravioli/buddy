@@ -1,0 +1,76 @@
+// buddy: platform build modules. This file is read by Soong when the repository is
+// checked out at vendor/buddy inside the GrapheneOS tree (platform/manifest/buddy.xml).
+//
+// The app is compiled from source here rather than imported as a Gradle APK because
+// it uses system and platform APIs (ContentCaptureService, the voice interaction
+// services) that the public SDK does not expose. The JVM modules under core/ledger and
+// core/perception are the same sources Gradle tests on the host.
+
+java_library {
+    name: "buddy-ledger",
+    srcs: ["core/ledger/src/main/kotlin/**/*.kt"],
+    exclude_srcs: ["core/ledger/src/main/kotlin/buddy/ledger/jdbc/**/*.kt"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
+    name: "buddy-perception",
+    srcs: ["core/perception/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+android_app {
+    name: "Buddy",
+    manifest: "core/android/src/main/AndroidManifest.xml",
+    srcs: ["core/android/src/main/kotlin/**/*.kt"],
+    resource_dirs: ["core/android/src/main/res"],
+    static_libs: [
+        "buddy-ledger",
+        "buddy-perception",
+    ],
+    // System APIs (ContentCaptureService) and, later, hidden ones. platform_apis
+    // compiles against the framework itself.
+    platform_apis: true,
+    certificate: "platform",
+    privileged: true,
+    system_ext_specific: true,
+    // No dex preopt in Phase 0: faster incremental builds; revisit for boot time.
+    dex_preopt: {
+        enabled: false,
+    },
+    optimize: {
+        enabled: false,
+    },
+    required: [
+        "privapp-permissions-buddy.xml",
+        "default-permissions-buddy.xml",
+        "sysconfig-buddy.xml",
+    ],
+}
+
+prebuilt_etc {
+    name: "privapp-permissions-buddy.xml",
+    src: "platform/config/privapp-permissions-buddy.xml",
+    sub_dir: "permissions",
+    system_ext_specific: true,
+    filename_from_src: true,
+}
+
+prebuilt_etc {
+    name: "default-permissions-buddy.xml",
+    src: "platform/config/default-permissions-buddy.xml",
+    sub_dir: "default-permissions",
+    system_ext_specific: true,
+    filename_from_src: true,
+}
+
+prebuilt_etc {
+    name: "sysconfig-buddy.xml",
+    src: "platform/config/sysconfig-buddy.xml",
+    sub_dir: "sysconfig",
+    system_ext_specific: true,
+    filename_from_src: true,
+}

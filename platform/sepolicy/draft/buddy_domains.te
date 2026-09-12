@@ -1,0 +1,49 @@
+# DRAFT: not built in Phase 0. The per-subsystem domains from docs/03-autonomy-and-trust.md.
+#
+# The intent, stated as policy: only cognition talks to the network and it cannot act;
+# only actuation acts and it cannot decide; audio and capture can only write to the
+# ledger; the ledger cannot reach the network. Each domain becomes a separate process
+# (android:process in the manifest, one seinfo per process is not enough, so this needs
+# the app split into separate APKs sharing a signature, or the services moved into
+# system_server as buddy system services in Phase 4).
+#
+# Every rule below must be validated with `m selinux_policy` and neverallow checks at
+# the pinned tag before it is moved to private/. Written to be read, not yet to build.
+
+type buddy_audio, domain, coredomain;
+type buddy_capture, domain, coredomain;
+type buddy_ledger, domain, coredomain;
+type buddy_cognition, domain, coredomain;
+type buddy_policy, domain, coredomain;
+type buddy_act, domain, coredomain;
+type buddy_surface, domain, coredomain;
+
+type buddy_ledger_data_file, file_type, data_file_type, core_data_file_type;
+type buddy_ipc_socket, file_type, coredomain_socket;
+
+# Ledger storage: only the ledger domain touches the database files.
+allow buddy_ledger buddy_ledger_data_file:dir create_dir_perms;
+allow buddy_ledger buddy_ledger_data_file:file create_file_perms;
+neverallow { domain -buddy_ledger } buddy_ledger_data_file:file { open read write };
+
+# Writers into the ledger go through its socket, never the files.
+allow { buddy_audio buddy_capture buddy_act buddy_policy buddy_cognition } buddy_ledger:unix_stream_socket connectto;
+
+# Network: cognition only.
+net_domain(buddy_cognition)
+neverallow { buddy_audio buddy_capture buddy_ledger buddy_policy buddy_act buddy_surface } domain:tcp_socket *;
+neverallow { buddy_audio buddy_capture buddy_ledger buddy_policy buddy_act buddy_surface } domain:udp_socket *;
+
+# Microphone: audio only.
+allow buddy_audio audioserver_service:service_manager find;
+neverallow { buddy_capture buddy_ledger buddy_cognition buddy_policy buddy_act buddy_surface } audioserver_service:service_manager find;
+
+# Actuation: only the act domain may inject input or bind actuation services.
+allow buddy_act input_service:service_manager find;
+neverallow { buddy_audio buddy_capture buddy_ledger buddy_cognition buddy_policy buddy_surface } input_service:service_manager find;
+
+# Proposals flow cognition -> policy -> act over sockets; act cannot originate.
+allow buddy_cognition buddy_policy:unix_stream_socket connectto;
+allow buddy_policy buddy_act:unix_stream_socket connectto;
+neverallow buddy_act buddy_policy:unix_stream_socket connectto;
+neverallow buddy_cognition buddy_act:unix_stream_socket connectto;

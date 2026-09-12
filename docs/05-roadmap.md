@@ -24,7 +24,8 @@ with buddy able to see everything and write it to a ledger. No cognition.
   domain runs hotword and VAD only.
 - Roles claimed: launcher, assistant and voice interaction service, SMS, dialer,
   notification listener.
-- Ledger: Room schema, SQLCipher, keystore-bound key, append-only event store, FTS5.
+- Ledger: append-only event store with FTS5 in credential-encrypted storage, tested on
+  the JVM against real SQLite. Progress is tracked in `docs/phase-0.md`.
 - Perception v0: content capture parsers for the founder's top ten apps, notification
   listener, SMS provider, calendar provider, call log, contacts, location.
 - Battery baseline: screen-off drain per hour with capture and hotword running.
