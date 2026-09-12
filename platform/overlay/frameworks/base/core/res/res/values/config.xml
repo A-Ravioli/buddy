@@ -20,8 +20,7 @@
     <!-- Notification listener access granted at boot. -->
     <string name="config_defaultListenerAccessPackages" translatable="false">app.buddy</string>
 
-    <!-- Phase 1 will add the notification assistant, which runs before a notification
-         is shown and can suppress it. It is a role Android already has; no patch needed.
+    <!-- Notification assistant: runs before a notification is shown and can suppress it.
+         A role Android already has; no patch needed. -->
     <string name="config_defaultAssistantAccessComponent" translatable="false">app.buddy/buddy.android.perception.BuddyNotificationAssistant</string>
-    -->
 </resources>

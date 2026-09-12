@@ -12,3 +12,4 @@ keys/
 *.pem
 *.apk
 *.aab
+platform/prebuilts/

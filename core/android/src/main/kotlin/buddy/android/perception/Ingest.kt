@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
 import buddy.android.BuddyApp
+import buddy.android.cognition.Brain
 import buddy.android.ledger.LedgerHolder
 import buddy.ledger.Event
 
@@ -34,6 +35,7 @@ object Ingest {
             flush()
             val n = ledger.appendAll(events)
             if (n > 0) Log.d(BuddyApp.TAG, "ingest: $n new of ${events.size} (${events.first().sourceApp}/${events.first().channel})")
+            triage(events)
         }
     }
 
@@ -46,7 +48,24 @@ object Ingest {
         if (pending.isEmpty()) return
         val n = ledger.appendAll(pending)
         Log.i(BuddyApp.TAG, "ingest: flushed ${pending.size} pre-unlock events, $n new")
+        triage(pending)
         pending.clear()
+    }
+
+    /**
+     * Phase 1: every recorded event is triaged and the decision recorded. The recorder
+     * is idempotent, so events the notification assistant already triaged cost one
+     * ignored append.
+     */
+    private fun triage(events: List<Event>) {
+        val recorder = Brain.triage ?: return
+        for (e in events) {
+            try {
+                recorder.process(e, Brain.profile)
+            } catch (t: Throwable) {
+                Log.w(BuddyApp.TAG, "triage failed for ${e.id}", t)
+            }
+        }
     }
 
     private const val MAX_PENDING = 5000
