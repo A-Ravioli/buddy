@@ -83,6 +83,38 @@ java_library {
 }
 
 java_library {
+    name: "buddy-automation",
+    srcs: ["core/automation/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger", "buddy-perception", "buddy-policy"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
+    name: "buddy-money",
+    srcs: ["core/money/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger", "buddy-entities", "buddy-policy"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
+    name: "buddy-logistics",
+    srcs: ["core/logistics/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger", "buddy-triage"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
+    name: "buddy-voice",
+    srcs: ["core/voice/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
     name: "buddy-cognition",
     srcs: ["core/cognition/src/main/kotlin/**/*.kt"],
     static_libs: [
@@ -113,6 +145,10 @@ android_app {
         "buddy-actuation",
         "buddy-style",
         "buddy-cognition",
+        "buddy-automation",
+        "buddy-money",
+        "buddy-logistics",
+        "buddy-voice",
     ],
     // System APIs (ContentCaptureService) and, later, hidden ones. platform_apis
     // compiles against the framework itself.

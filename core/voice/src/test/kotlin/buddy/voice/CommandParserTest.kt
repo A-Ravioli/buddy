@@ -1,0 +1,49 @@
+package buddy.voice
+
+import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+
+class CommandParserTest {
+    private fun p(s: String) = CommandParser.parse(s)
+
+    @Test
+    fun `tell`() {
+        assertEquals(Command.Tell("Sam", "I'll be ten minutes late"), p("Hey buddy, tell Sam I'll be ten minutes late."))
+        assertEquals(Command.Tell("mum", "dinner's at 7"), p("text mum that dinner's at 7"))
+        assertEquals(Command.Tell("Alex", "the doc is on its way"), p("let Alex know the doc is on its way"))
+    }
+
+    @Test
+    fun `recall and brief`() {
+        assertIs<Command.Recall>(p("what did the plumber say about the boiler"))
+        assertIs<Command.Recall>(p("when's my dentist appointment?"))
+        assertIs<Command.Recall>(p("did Sam reply?"))
+        assertEquals(Command.Brief, p("buddy what's the brief"))
+        assertEquals(Command.Brief, p("anything for me?"))
+        assertEquals(Command.Brief, p("catch me up"))
+    }
+
+    @Test
+    fun `cancel reschedule reply`() {
+        assertEquals(Command.Cancel("Thursday"), p("cancel Thursday"))
+        assertEquals(Command.Cancel("dinner with Sam"), p("Cancel dinner with Sam."))
+        assertEquals(Command.Reschedule("the dentist", "Friday"), p("move the dentist to Friday"))
+        assertEquals(Command.Reschedule("the delivery", "Thursday afternoon"), p("reschedule the delivery to Thursday afternoon"))
+        assertEquals(Command.Reschedule("standup", null), p("push standup"))
+        assertEquals(Command.Reply("yes that works"), p("reply yes that works"))
+        assertEquals(Command.Reply("I'll be there"), p("say that I'll be there"))
+    }
+
+    @Test
+    fun `control words and standing instructions`() {
+        assertEquals(Command.Pause, p("buddy stop listening"))
+        assertEquals(Command.Pause, p("pause"))
+        assertEquals(Command.Resume, p("start listening again"))
+        assertEquals(Command.Undo, p("undo that"))
+        assertEquals(Command.Instruction("don't reply to my mum for me"), p("don't reply to my mum for me"))
+        assertEquals(Command.Instruction("always accept invites from Alex"), p("always accept invites from Alex"))
+        assertIs<Command.Unknown>(p("la la la"))
+        assertIs<Command.Unknown>(p(""))
+    }
+}

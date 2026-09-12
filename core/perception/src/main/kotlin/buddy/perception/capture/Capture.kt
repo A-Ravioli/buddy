@@ -18,7 +18,14 @@ data class CaptureNode(
     val resourceId: String? = null,
     val visible: Boolean = true,
     val children: List<CaptureNode> = emptyList(),
-)
+    /** Absolute screen bounds in pixels, when the source provides them. */
+    val bounds: Bounds? = null,
+) {
+    data class Bounds(val left: Int, val top: Int, val width: Int, val height: Int) {
+        val centerX: Int get() = left + width / 2
+        val centerY: Int get() = top + height / 2
+    }
+}
 
 /** One snapshot of one app's window, assembled from a content capture session. */
 data class CaptureSnapshot(
