@@ -94,11 +94,11 @@ object Brain {
         buddy.actuation.Actions.register(buddy.automation.Recipes.RESCHEDULE_DELIVERY, listOf("package", "tracking", "day"))
         buddy.actuation.Actions.register(buddy.automation.Recipes.START_RETURN, listOf("package", "order_id", "reason"))
         val dm = appContext.resources.displayMetrics
-        val driver = buddy.android.automation.CaptureDriver(appContext, dm.widthPixels, dm.heightPixels)
+        val captureDriver = buddy.android.automation.CaptureDriver(appContext, dm.widthPixels, dm.heightPixels)
         val recipes = object : buddy.actuation.RecipeRunnerFacade {
             override fun run(packageName: String, action: String, params: Map<String, String>): Triple<Boolean, String, List<String>> {
                 val recipe = buddy.automation.Recipes.find(packageName, action) ?: return Triple(false, "no recipe", emptyList())
-                val r = buddy.automation.RecipeRunner(driver).run(recipe, params)
+                val r = buddy.automation.RecipeRunner(captureDriver).run(recipe, params)
                 return Triple(r.ok, r.reason, r.trace)
             }
             override fun available() = buddy.automation.Recipes.all().map { it.packageName to it.name }.toSet()

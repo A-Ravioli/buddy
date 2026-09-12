@@ -14,6 +14,11 @@ runs the JVM tests first and then the platform build, which compiles this app.
 The surface is Jetpack Compose, built from the androidx prebuilts in the platform tree
 (see `Android.bp`). The design it ports is the canvas linked from the root README.
 
+`core/android-verify` compiles everything in this directory on the host (`./gradlew
+build`), against Robolectric's full framework jar and the Compose API, so a type or API
+error shows up in CI rather than on the build host. It does not check the Soong module
+names in `Android.bp`.
+
 Rule for this directory: no logic. Anything that decides what becomes an event, how
 it is keyed, or what it means belongs in `core/perception` or `core/ledger`, where it
 is tested on the JVM. Code here should be a thin mapping from framework types to

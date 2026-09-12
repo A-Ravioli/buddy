@@ -39,3 +39,6 @@ include(":eval:metrics")
 // The Android app (core/android) is not a Gradle module. It uses platform and system
 // APIs (the content capture service, for one) that the public SDK does not expose, so
 // it is built by Soong inside the GrapheneOS tree from the Android.bp at the repo root.
+// core/android-verify compiles its sources here anyway, against the full framework jar
+// and the Compose API, so CI catches errors in it without the platform tree.
+include(":core:android-verify")
