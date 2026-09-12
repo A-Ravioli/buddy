@@ -45,7 +45,8 @@ Goal: the phone stops interrupting, and it starts to hear.
 - Audio tiers 2 and 3: speaker enrolment and verification, streaming ASR on the NPU,
   gated by situation, with the daily minutes budget (three hours). Phone calls
   transcribed through the dialer. `utterance` events in the ledger. Off-limits
-  situations enforced. Pixel Buds Pro 2 paired as the command mic and hotword source.
+  situations enforced from marked places, place categories, and calendar keywords.
+  Pixel Buds Pro 2 paired as the command mic and hotword source.
 - Cloud cognition v0: the planning cycle that produces the brief, with the cached
   system prefix, context slices, and untrusted envelopes. No action tools yet.
 - Eval harness: replay a day of ledger through triage and brief, score against the
@@ -105,10 +106,12 @@ Goal: the build is something a second person could run.
 - Security review of the SELinux policy and the framework patches by someone who did
   not write them. Findings fixed before anything else in this phase.
 - Remove the launcher grid and SystemUI chrome that assume a viewer.
-- Pixel Watch as the escalation surface: one-tap resolve, haptic cue when
+- Pixel Watch 4 as the escalation surface: one-tap resolve, haptic cue when
   transcription starts, the brief on the wrist when earbuds are out.
-- Bystander controls finalised and tested: the transcription cue, the stop phrase,
-  off-limits detection from calendar and location.
+- Bystander controls finalised and tested: the transcription cue, the stop phrase, the
+  earbud pause gesture, off-limits detection from marked places, place categories, and
+  calendar keywords. A scene classifier only if the weekly metric demanded it in
+  Phase 3.
 - Onboarding flow: profile bootstrap from history, voice enrolment, autonomy defaults,
   first-week trust ladder.
 

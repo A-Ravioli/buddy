@@ -145,7 +145,9 @@ doc 03.
   handle it.
 
 **Never:**
-- Transcribe a situation on the off-limits list.
+- Transcribe a situation on the off-limits list. Off-limits is decided by deterministic
+  rules (marked places, place categories, calendar keywords, manual pause), any one of
+  which is enough.
 - Treat any voice but the user's as a command.
 - Send third-party speech to the cloud unless a task requires it and the timeline
   records it.

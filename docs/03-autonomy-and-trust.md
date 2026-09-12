@@ -166,16 +166,22 @@ proposal.
 
 - Automated messaging on the user's behalf: the user's contacts are messaging the user,
   and the user is responsible for the replies. The style model and hold window are what
-  keep this honest. The user can choose to disclose ("sent by my assistant") per
-  relationship class; default is no disclosure for close contacts and disclosure for
-  organisations.
+  keep this honest. Disclosure by relationship class: close contacts get none, because
+  that class stays at level 1 and the user approves every message, so they are hearing
+  from the user; friends and colleagues get none for logistics replies, and anything
+  beyond logistics escalates; organisations and strangers get a one-line signature
+  saying the message was sent by the user's assistant. In every class, if anyone asks
+  whether they are talking to an assistant, buddy says yes. It never claims to be the
+  user.
 - Call handling: call screening and transcription follow the jurisdiction's consent
   rules. Defaults are conservative; the agent asks the caller's consent where required.
 - Ambient audio and bystanders: buddy hears people who did not choose it. Defaults
   (adjustable by the user, with the legal floor for their jurisdiction enforced):
   transcription of a conversation the user is part of is on; transcription of
   conversations the user is not part of is off; medical, legal, and intimate settings
-  are on the off-limits list by default and detected from calendar and location;
+  are on the off-limits list by default and detected deterministically from places the
+  user marks, place categories in on-device map data, and calendar keywords, with an
+  earbud gesture for manual pause;
   anyone the user enrols by voice is told; a spoken "buddy, stop listening" from anyone
   pauses capture for an hour. There is no standing microphone indicator, because the
   phone is in a pocket and it would inform nobody; instead a short haptic and an earbud

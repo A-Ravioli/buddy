@@ -16,20 +16,15 @@ the plan elsewhere assumes them.
 | 7 | Transcription scope and budget | Conversations the user is part of, calendar meetings, and calls. Three hours a day. | Three hours at around a watt is roughly a sixth of the battery, which leaves a full day. Meetings and calls count against the budget but take priority over ambient conversation when it runs low. Overheard conversations are off. |
 | 8 | Cloud provider coupling | Accept it | Prompt caching, effort control, mid-conversation operator messages, and structured outputs are load-bearing. The cognition module keeps a thin adapter boundary so a swap is a rewrite of one module, not the system, and that is enough. |
 | 9 | First and second user | Founder only until Phase 4 exits | The second user joins after a security review by someone else, a clean build from a fresh checkout, and four consecutive weeks of every gate green on the founder's phone. |
-| 10 | Voice surface | Pixel Buds Pro 2 from Phase 1; Pixel Watch in Phase 4 | Earbuds are the user's own mic for commands and dictation and the channel for the brief, and they are needed as soon as tier-3 audio lands. The watch is the tap-to-resolve surface and the haptic cue; it waits until the escalation queue is stable. |
+| 10 | Voice surface | Pixel Buds Pro 2 from Phase 1; Pixel Watch 4 in Phase 4 | Earbuds are the user's own mic for commands and dictation and the channel for the brief, and they are needed as soon as tier-3 audio lands. The watch is the tap-to-resolve surface and the haptic cue; it waits until the escalation queue is stable. Pixel Watch 4 is the current model; upgrade only if a successor has been out for three months when Phase 4 starts. |
+| 11 | Off-limits situation detection | Deterministic layers only in Phase 1; no scene classifier unless misses appear | Three deterministic signals pause transcription: places the user marks, place categories from on-device map data (medical, legal, religious, childcare, counselling), and calendar keywords (doctor, therapy, lawyer, HR, interview, and the user's additions). Plus the stop phrase and an earbud gesture for manual pause. Any one signal is enough. A scene classifier is added in Phase 3 only if the weekly "wish it were not captured" metric is nonzero. Deterministic rules are auditable; a classifier that guesses wrong in a clinic is worse than one that asks. |
+| 12 | Disclosure per relationship class | Close contacts: none, because they stay at level 1 and the user approves every message. Friends and colleagues: none for logistics replies, anything beyond logistics escalates. Organisations and strangers: disclosed with a one-line signature. Direct questions always answered honestly. | Close contacts are effectively hearing from the user, since the user taps send. Organisations do not care and it keeps buddy honest. Whatever the class, if anyone asks whether they are talking to an assistant, buddy says yes; it never claims to be the user. |
+| 13 | Watch model | Pixel Watch 4 | Current model, Wear OS with the companion APIs the escalation surface needs. Pinned now so Phase 4 has no open hardware question. |
 
 ## Still open
 
-Nothing blocks Phase 0. Items that will need a decision later, with the phase they
-block:
-
-- **Off-limits situation detection** beyond calendar and location (Phase 1): whether to
-  train a scene classifier for medical and intimate settings or rely on user-marked
-  places and a manual pause.
-- **Disclosure defaults per relationship class** for agent-sent messages (Phase 2): the
-  plan says no disclosure to close contacts and disclosure to organisations; confirm
-  once the style model is real.
-- **Watch model** (Phase 4): whichever Pixel Watch is current when Phase 4 starts.
+Nothing. Every decision the plan depends on is in the table above. New questions go
+here as they come up, with the phase they block.
 
 ## Known risks
 

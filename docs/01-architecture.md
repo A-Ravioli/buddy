@@ -103,7 +103,7 @@ Pixel 10 Pro Fold and 10a are explicitly out of scope.
 
 A Pixel 10 Pro XL with the screen off by default. Pixel Buds Pro 2 are the primary
 surface from Phase 1: the user's own microphone for commands and dictation, and the
-channel for the spoken brief. A Pixel Watch joins in Phase 4 as the tap-to-resolve
+channel for the spoken brief. A Pixel Watch 4 joins in Phase 4 as the tap-to-resolve
 escalation surface.
 
 ## Perception layer
