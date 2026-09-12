@@ -1,0 +1,5 @@
+# Phase 0: buddy runs as a platform-signed app in the platform_app domain, which has
+# the access a system app needs and nothing more. The per-subsystem split
+# (sepolicy/draft/buddy_domains.te) replaces this line once the services are separate
+# processes.
+user=_app seinfo=platform name=app.buddy domain=platform_app type=app_data_file levelFrom=user

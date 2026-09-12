@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- System configuration for buddy: exempt from power saving and data saver, so the
+     perception service is never throttled. -->
+<config>
+    <allow-in-power-save package="app.buddy" />
+    <allow-in-data-usage-save package="app.buddy" />
+    <allow-unthrottled-location package="app.buddy" />
+    <allow-ignore-location-settings package="app.buddy" />
+</config>

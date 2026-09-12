@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Points the GrapheneOS Updater at our own release server. The Updater fetches
+  <url>/<device>-<channel> metadata and the release zip from the same base. VERIFY the
+  resource name in packages/apps/Updater/res/values/config.xml at the pinned tag.
+  scripts/build.sh writes the release into releases/, which the server serves as-is.
+-->
+<resources>
+    <string name="url" translatable="false">https://releases.buddy.invalid/</string>
+</resources>

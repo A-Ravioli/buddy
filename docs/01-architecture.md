@@ -44,14 +44,16 @@ an Android build from the first commit, not an app on someone else's build.
 | Continuous ambient capture | Android hands the microphone to one client at a time; the privacy indicator and capture policy are framework code | Audio policy gives buddy's capture domain a permanent, concurrent, low-priority mic stream; indicator behaviour is a decision (doc 06) |
 | Both sides of a phone call | Voice-call audio source needs a signature-level capture permission | buddy is the dialer with that permission; call audio is transcribed on-device |
 | Audio from VoIP calls and media | Apps opt out of playback capture by manifest flag | Framework patch lets buddy's capture domain ignore the opt-out (decision, doc 06) |
-| Input injection into any app | Signature-level permission | buddy's actuation domain holds it; no Accessibility service needed for taps and text |
-| Notification interception before delivery | Ranking and posting are framework code | A notification ranker hook lets buddy decide what is shown before it is posted |
+| Input injection into any app | Signature-level permission | Granted to the platform-signed app through the privileged-permission allowlist; no patch, no Accessibility service |
+| Notification interception before delivery | Ranking and posting are framework code | Android's notification assistant role runs before a notification is shown and can suppress it; buddy holds the role by overlay. No patch |
 | Survive Doze and app standby | Device owner exemption is enough for an app; a system service is simpler and cannot be killed | Core buddy services run as persistent system services |
 | Isolation between buddy's own parts | Apps get one SELinux domain | Each buddy subsystem gets its own SELinux domain with least privilege (see doc 03) |
 
 Everything else buddy needs (launcher, assistant, SMS, dialer, notification listener
 roles; usage stats; contacts; calendar; location) works the same way in the fork as it
-would have for a system app, and stays app-level code inside the build.
+would have for a system app, and stays app-level code inside the build. Writing the
+patch list showed that more of the table is "overlay and allowlist" than "patch": see
+`platform/patches/README.md` for what actually needs framework changes.
 
 ### Base
 
@@ -332,9 +334,9 @@ The user-facing part is deliberately tiny.
 
 | Layer | Choice | Why |
 |---|---|---|
-| Language | Kotlin (app and services), C++ for on-device inference glue | Native Android |
+| Language | Kotlin (app and services), C++ for on-device inference glue; the app is built by Soong in the tree, the logic modules by Gradle on any host | Native Android; system APIs need the tree |
 | Base OS | Forked GrapheneOS source tree, own verified-boot keys, monthly rebase; Pixel 10 Pro XL | AOSP no longer ships Pixel device trees; GrapheneOS carries them plus hardening and sandboxed Play Services |
-| Persistence | SQLite via Room, `sqlite-vec` for embeddings, SQLCipher for encryption at rest | Local, fast, one file to back up |
+| Persistence | SQLite with a hand-written append-only schema and FTS5, `sqlite-vec` for embeddings later; encrypted at rest by the platform's credential-encrypted storage | Local, fast, one file to back up; the same schema is tested on the JVM |
 | On-device model | AICore / Gemini Nano where present; llama.cpp with a quantised 2 to 4B model otherwise | Triage and extraction without network |
 | Embeddings | On-device small embedding model | Retrieval without leaking content |
 | Cloud reasoning | Anthropic Java SDK from Kotlin; Messages API with tool use, prompt caching, structured outputs, adaptive thinking | Frontier planning and action |

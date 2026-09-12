@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Local manifest for the GrapheneOS checkout. Copy to .repo/local_manifests/buddy.xml
+  (scripts/sync.sh does this). It adds this repository at vendor/buddy so the platform
+  build finds vendor/buddy/platform/product/AndroidProducts.mk.
+-->
+<manifest>
+  <remote name="buddy" fetch="https://github.com/A-Ravioli/" />
+  <project path="vendor/buddy" name="buddy" remote="buddy" revision="main" />
+</manifest>

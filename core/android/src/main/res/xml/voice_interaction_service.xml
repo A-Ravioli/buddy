@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Metadata for the voice interaction role. Hotword and sessions are wired in Phase 1
+     with the audio pipeline; in Phase 0 this exists so the role can be assigned. -->
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="buddy.android.voice.BuddyVoiceSessionService"
+    android:recognitionService="buddy.android.voice.BuddyVoiceInteractionService"
+    android:settingsActivity="buddy.android.ui.TimelineActivity"
+    android:supportsAssist="true"
+    android:supportsLaunchFromKeyguard="false"
+    android:supportsLocalInteraction="true" />

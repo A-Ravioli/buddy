@@ -8,7 +8,7 @@ produce, holds the full context of your life, and acts on your behalf. Email, me
 calendar, deliveries, bills, bookings, social: handled in the background. You hear from
 the phone only when it needs a decision from you, and it tries to make that rare.
 
-This repo currently holds the plan. Read it in order:
+The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 
 | Doc | What it covers |
 |---|---|
@@ -19,6 +19,23 @@ This repo currently holds the plan. Read it in order:
 | [docs/04-domain-playbooks.md](docs/04-domain-playbooks.md) | Per-domain behaviour: email, messaging, calendar, money, travel, calls, and more |
 | [docs/05-roadmap.md](docs/05-roadmap.md) | Phased build plan with milestones, metrics, and repo layout |
 | [docs/06-open-questions.md](docs/06-open-questions.md) | Decisions made, what is still open, and known risks |
+| [docs/phase-0.md](docs/phase-0.md) | Phase 0 status: what exists, what is verified, what needs the build host or the phone |
+
+## Repository layout
+
+| Path | What |
+|---|---|
+| `core/ledger` | The life ledger: schema, append-only rules, ids, search. JVM, tested. |
+| `core/perception` | Normalisers from platform snapshots to ledger events. JVM, tested. |
+| `core/android` | The buddy system app. Built by Soong inside the GrapheneOS tree. |
+| `platform/` | Product config, overlays, permissions, SELinux, patch specs, build scripts. |
+| `Android.bp` | Soong modules for the app and its config, read when this repo is `vendor/buddy`. |
+
+Run the JVM tests anywhere with a JDK 17 or newer:
+
+```
+./gradlew :core:ledger:test :core:perception:test
+```
 
 ## The one-paragraph version
 

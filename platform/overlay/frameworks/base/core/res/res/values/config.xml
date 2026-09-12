@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Framework configuration overlay. These resources are what hand buddy its reach at
+  boot without a single settings prompt. Every name here must exist in
+  frameworks/base/core/res/res/values/config.xml at the pinned GrapheneOS tag; a name
+  that has drifted fails the build, which is what we want.
+-->
+<resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Content capture: the framework streams every app's view content to this service.
+         This is the single most important line in the overlay. -->
+    <string name="config_defaultContentCaptureService" translatable="false">app.buddy/buddy.android.capture.BuddyContentCaptureService</string>
+
+    <!-- Default role holders. -->
+    <string name="config_defaultAssistant" translatable="false">app.buddy</string>
+    <string name="config_defaultSms" translatable="false">app.buddy</string>
+    <string name="config_defaultDialer" translatable="false">app.buddy</string>
+    <string name="config_defaultCallScreening" translatable="false">app.buddy</string>
+
+    <!-- Notification listener access granted at boot. -->
+    <string name="config_defaultListenerAccessPackages" translatable="false">app.buddy</string>
+
+    <!-- Phase 1 will add the notification assistant, which runs before a notification
+         is shown and can suppress it. It is a role Android already has; no patch needed.
+    <string name="config_defaultAssistantAccessComponent" translatable="false">app.buddy/buddy.android.perception.BuddyNotificationAssistant</string>
+    -->
+</resources>

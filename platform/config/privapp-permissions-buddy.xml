@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Privileged permissions buddy is allowed to hold. The build fails if the app requests
+  a signature|privileged permission that is not listed here, which is the point: this
+  file is the reviewable record of what buddy can do beyond an ordinary app.
+
+  Phase 0 needs only usage stats. Later phases add, each with its own commit:
+    android.permission.CAPTURE_AUDIO_OUTPUT       (calls, Phase 1)
+    android.permission.CAPTURE_AUDIO_HOTWORD      (hotword, Phase 1)
+    android.permission.INJECT_EVENTS              (actuation, Phase 2)
+    android.permission.INTERACT_ACROSS_USERS      (only if a second user profile appears)
+-->
+<permissions>
+    <privapp-permissions package="app.buddy">
+        <permission name="android.permission.PACKAGE_USAGE_STATS" />
+        <permission name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
+        <permission name="android.permission.START_FOREGROUND_SERVICES_FROM_BACKGROUND" />
+    </privapp-permissions>
+</permissions>
