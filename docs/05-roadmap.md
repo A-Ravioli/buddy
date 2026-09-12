@@ -10,11 +10,11 @@ first deliverable.
 
 ## Phase 0: the build (weeks 1 to 8)
 
-Goal: a buddy Android build on the founder's Pixel, updating over the air, with buddy
-able to see everything and write it to a ledger. No cognition.
+Goal: a buddy Android build on the founder's Pixel 10 Pro XL, updating over the air,
+with buddy able to see everything and write it to a ledger. No cognition.
 
-- Build farm, AOSP for Pixel checkout, vendor binaries, platform and release keys,
-  verified-boot key, bootloader relocked. OTA pipeline so updates never wipe.
+- Build farm, GrapheneOS source checkout, platform and release keys, verified-boot
+  key, bootloader relocked. OTA server so updates never wipe.
 - Framework patch set v0, each patch small and separately revertible:
   content capture service set to buddy; secure-window and playback-capture overrides
   (if the decisions in doc 06 say yes); input injection; notification ranker hook;
@@ -43,8 +43,9 @@ Goal: the phone stops interrupting, and it starts to hear.
 - Morning and evening brief, text first, delivered as one notification and as a
   screen. Escalation queue screen.
 - Audio tiers 2 and 3: speaker enrolment and verification, streaming ASR on the NPU,
-  gated by situation, with the daily minutes budget. Phone calls transcribed through
-  the dialer. `utterance` events in the ledger. Off-limits situations enforced.
+  gated by situation, with the daily minutes budget (three hours). Phone calls
+  transcribed through the dialer. `utterance` events in the ledger. Off-limits
+  situations enforced. Pixel Buds Pro 2 paired as the command mic and hotword source.
 - Cloud cognition v0: the planning cycle that produces the brief, with the cached
   system prefix, context slices, and untrusted envelopes. No action tools yet.
 - Eval harness: replay a day of ledger through triage and brief, score against the
@@ -77,12 +78,12 @@ Exit: most inbound email never touches the founder. Regret rate under target for
 weeks. No successful injection in the corpus. Trust ladder promotes email replies to
 level 2 for organisations.
 
-## Phase 3: voice-first and the long tail of apps (weeks 25 to 36)
+## Phase 3: the long tail of apps (weeks 25 to 36)
 
-Goal: the screen is optional; buddy reaches every app.
+Goal: buddy reaches every app; the screen is optional.
 
-- Earbuds as the primary surface: spoken brief, hotword commands, dictated replies,
-  whispered call summaries. Watch as the escalation surface with one-tap resolve.
+- Earbud surface completed: spoken brief, dictated replies, whispered call summaries,
+  spoken corrections. (Earbuds as the command mic land in Phase 1.)
 - Call handling: screening, voice replies through TTS into the uplink, outbound calls
   with hold handling. VoIP transcription through playback capture.
 - Injection recipes for the founder's remaining apps: delivery carriers, the bank, the
@@ -97,25 +98,28 @@ Goal: the screen is optional; buddy reaches every app.
 Exit: the founder has not opened a delivery, banking, or airline app in a month, and
 goes a full day without unlocking.
 
-## Phase 4: hardening and the GrapheneOS port (weeks 37 to 44)
+## Phase 4: hardening and the second-user build (weeks 37 to 44)
 
 Goal: the build is something a second person could run.
 
-- Rebase the patch set onto GrapheneOS; keep AOSP for Pixel as the fallback target.
-- Sandboxed Play Services or microG, whichever the app coverage in doc 06 needs.
-- Remove the launcher grid and SystemUI chrome that assume a viewer.
 - Security review of the SELinux policy and the framework patches by someone who did
-  not write them.
-- Bystander controls finalised: indicator behaviour, stop phrase, off-limits detection.
+  not write them. Findings fixed before anything else in this phase.
+- Remove the launcher grid and SystemUI chrome that assume a viewer.
+- Pixel Watch as the escalation surface: one-tap resolve, haptic cue when
+  transcription starts, the brief on the wrist when earbuds are out.
+- Bystander controls finalised and tested: the transcription cue, the stop phrase,
+  off-limits detection from calendar and location.
+- Onboarding flow: profile bootstrap from history, voice enrolment, autonomy defaults,
+  first-week trust ladder.
 
 Exit: a clean build from a fresh checkout, security review closed, battery and safety
-metrics unchanged after the port.
+metrics unchanged.
 
 ## Phase 5: second user (weeks 45 onward)
 
-- Profile bootstrap from history, autonomy defaults, first-week trust ladder, voice
-  enrolment flow.
-- A second person lives on the phone for a month with the metrics inside bounds.
+- A second person lives on the phone for a month with the metrics inside bounds. They
+  are added only after Phase 4 exits and the founder has had four consecutive weeks
+  with every gate green.
 
 ## Cross-cutting workstreams
 
@@ -127,7 +131,7 @@ metrics unchanged after the port.
 - **Cost** is tracked per day from Phase 1. The budget cap is enforced from Phase 2.
   Levers in order: on-device triage rate, cache hit rate on the system prefix, effort
   per task class, worker model for bulk reads.
-- **Rebase** onto the monthly AOSP security tag is a scheduled task from Phase 0.
+- **Rebase** onto the monthly GrapheneOS security release is a scheduled task from Phase 0.
 - **Docs** stay in this folder and are updated as decisions land.
 
 ## Success gates between phases

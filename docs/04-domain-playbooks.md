@@ -150,6 +150,9 @@ doc 03.
 - Send third-party speech to the cloud unless a task requires it and the timeline
   records it.
 
+**Budget:** three hours of transcription a day. Calls and calendar meetings take
+priority over ambient conversation when the budget runs low; the brief reports usage.
+
 **Level defaults:** listening and extracting is on; anything that sends or books stays
 at the owning domain's level.
 

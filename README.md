@@ -18,13 +18,13 @@ This repo currently holds the plan. Read it in order:
 | [docs/03-autonomy-and-trust.md](docs/03-autonomy-and-trust.md) | Autonomy tiers, action gating, undo, prompt injection, security and privacy |
 | [docs/04-domain-playbooks.md](docs/04-domain-playbooks.md) | Per-domain behaviour: email, messaging, calendar, money, travel, calls, and more |
 | [docs/05-roadmap.md](docs/05-roadmap.md) | Phased build plan with milestones, metrics, and repo layout |
-| [docs/06-open-questions.md](docs/06-open-questions.md) | Decisions still to make and known risks |
+| [docs/06-open-questions.md](docs/06-open-questions.md) | Decisions made, what is still open, and known risks |
 
 ## The one-paragraph version
 
 buddy is an Android build, not an app. Two requirements decide that: always-on audio
 and content capture across every app, both of which are framework capabilities that no
-app can be granted. So Phase 0 is a buddy fork of AOSP for Pixel with our own keys,
+app can be granted. So Phase 0 is a fork of the GrapheneOS source tree for the Pixel 10 Pro XL, with our own keys,
 with buddy's subsystems running as system services in separate SELinux domains. The
 perception layer reads every app through content capture, notifications, and APIs. A
 tiered audio pipeline listens on the DSP for free, transcribes on the NPU only when the
@@ -32,4 +32,4 @@ user is in a conversation that matters, and never stores raw audio. Everything l
 an encrypted on-device ledger. A small on-device model triages the firehose; a frontier
 model in the cloud plans and acts only on the slice of context each task needs, and
 every action it proposes passes a policy engine it cannot bypass. The phone's default
-state is screen-off in a pocket, with earbuds as the primary surface.
+state is screen-off in a pocket, with Pixel Buds as the primary surface.

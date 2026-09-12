@@ -177,8 +177,9 @@ proposal.
   conversations the user is not part of is off; medical, legal, and intimate settings
   are on the off-limits list by default and detected from calendar and location;
   anyone the user enrols by voice is told; a spoken "buddy, stop listening" from anyone
-  pauses capture for an hour. There is no way to make this fully invisible to
-  bystanders and fully respectful at the same time; doc 06 carries the decision on the
-  mic indicator.
+  pauses capture for an hour. There is no standing microphone indicator, because the
+  phone is in a pocket and it would inform nobody; instead a short haptic and an earbud
+  tone tell the user each time transcription starts, so the user is always the one who
+  knows and can stop it. Doc 06 records the decision.
 - Payments and financial actions: within caps only, with receipts filed and a daily
   ledger line in the brief.

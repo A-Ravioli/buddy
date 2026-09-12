@@ -55,37 +55,56 @@ would have for a system app, and stays app-level code inside the build.
 
 ### Base
 
-Plain **AOSP for Pixel**, built from the monthly tags with Google's published vendor
-binaries, bootloader relocked with our own verified-boot key. Reasons over GrapheneOS as
-the base:
+**The GrapheneOS source tree, forked.** Not GrapheneOS as a product with buddy on top,
+and not plain AOSP. The reasons:
 
-- The patch set is now deep (audio policy, content capture, window manager, SELinux
-  policy). Rebasing it on GrapheneOS's fast release cadence and its hardening patches
-  in the same files is a steady tax for one team.
-- GrapheneOS deliberately removes or restricts several of the privileged paths above.
-  Re-enabling them means fighting the base.
-- Pixel's Tensor SoC has the DSP hotword path and an NPU that on-device speech and
-  triage models need, and AOSP for Pixel exposes both.
+- Since Android 16, AOSP no longer ships Pixel device trees or driver binaries; Google
+  moved the reference target to the Cuttlefish virtual device. "Plain AOSP for Pixel"
+  now means reconstructing device support yourself. GrapheneOS has already done that
+  work and ships stable builds for the whole Pixel 10 line.
+- Verified boot with our own keys, relocked bootloader, and an OTA server are
+  first-class, documented flows in GrapheneOS. On plain AOSP they are ours to build.
+- Sandboxed Play Services solves the Google-services problem for most apps without
+  giving Google privileged access, which matters when buddy itself is the privileged
+  component.
+- buddy is the most privileged thing on the phone and holds every conversation the
+  user has. The hardened base (memory allocator, exploit mitigations, stricter SELinux)
+  is worth the rebase cost for that alone.
 
-GrapheneOS remains the right base to port to once the patch set is stable, for its
-hardening and its sandboxed Play Services. That is a later phase, not the start.
+The cost is the patch set. GrapheneOS ships often and its hardening touches some of the
+same framework files we patch. Rules to keep the tax bounded:
+
+- Rebase once a month, onto the GrapheneOS release that carries that month's Android
+  security bulletin. Ignore the interim releases.
+- Every buddy framework change is a separate, small, documented patch with a test.
+  Patches that grow are split.
+- Where GrapheneOS restricts a path we need (for example their limits on privileged
+  system components), we patch to exempt buddy's SELinux domains only, never to remove
+  the restriction.
+
+Device: **Pixel 10 Pro XL**. Largest battery in the line, which is the binding
+constraint for always-on audio; Tensor G5 for the DSP hotword path, the TPU for
+on-device speech and triage models, and AICore. One device for the first year. The
+Pixel 10 Pro Fold and 10a are explicitly out of scope.
 
 ### What this costs
 
 - A build farm (a machine with 64 GB or more of memory and a fast disk; hours per full
   build), a signing setup with platform, release, and verified-boot keys, and an OTA
   pipeline so the founder's phone can update without a wipe.
-- A monthly rebase onto the new AOSP security tag.
+- A monthly rebase onto the GrapheneOS release carrying that month's security bulletin.
 - Around four to six extra weeks before any buddy feature ships, spent on the build and
   provisioning path. The roadmap in doc 05 absorbs this in Phase 0.
-- No Google Play Services in the first build. Apps that hard-depend on them (some
-  banking, Google Wallet, RCS through Google's stack) work only after microG or
-  sandboxed Play Services are integrated. Tracked in doc 06.
+- Sandboxed Play Services from the base covers most apps that depend on Google. Google
+  Wallet tap-to-pay does not work with our own verified-boot key regardless, so
+  payments go through bank apps and bill-pay flows, not Wallet.
 
 ### Hardware posture
 
-Unchanged: a Pixel with the screen off by default, earbuds and a watch as the primary
-surface. Tensor is now a hard requirement for the on-device audio path.
+A Pixel 10 Pro XL with the screen off by default. Pixel Buds Pro 2 are the primary
+surface from Phase 1: the user's own microphone for commands and dictation, and the
+channel for the spoken brief. A Pixel Watch joins in Phase 4 as the tap-to-resolve
+escalation surface.
 
 ## Perception layer
 
@@ -314,7 +333,7 @@ The user-facing part is deliberately tiny.
 | Layer | Choice | Why |
 |---|---|---|
 | Language | Kotlin (app and services), C++ for on-device inference glue | Native Android |
-| Base OS | AOSP for Pixel, monthly tags, own verified-boot keys; GrapheneOS port later | Deep framework patches are cheapest to carry on plain AOSP; Tensor gives the DSP hotword path and NPU |
+| Base OS | Forked GrapheneOS source tree, own verified-boot keys, monthly rebase; Pixel 10 Pro XL | AOSP no longer ships Pixel device trees; GrapheneOS carries them plus hardening and sandboxed Play Services |
 | Persistence | SQLite via Room, `sqlite-vec` for embeddings, SQLCipher for encryption at rest | Local, fast, one file to back up |
 | On-device model | AICore / Gemini Nano where present; llama.cpp with a quantised 2 to 4B model otherwise | Triage and extraction without network |
 | Embeddings | On-device small embedding model | Retrieval without leaking content |

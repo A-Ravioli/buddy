@@ -1,60 +1,35 @@
 # 06. Open questions and risks
 
-## Decisions to make before building
+## Decisions made
 
-1. **Base OS.** Now that the fork is day one and the patch set touches audio policy,
-   content capture, window management, and SELinux, plain AOSP for Pixel is the
-   recommendation: it is the base with the least friction for deep framework patches,
-   and Google publishes the vendor binaries. GrapheneOS becomes a later port for its
-   hardening. LineageOS is the fallback if we need non-Pixel hardware. Confirm.
+These were open; they are now decided. Each can be reopened by editing this file, but
+the plan elsewhere assumes them.
 
-2. **Which Pixel.** A recent Tensor device for the DSP hotword path, the NPU, and
-   AICore. Pick one model and stay on it for the first year; every extra device is
-   another build target and another battery profile.
+| # | Decision | Choice | Why |
+|---|---|---|---|
+| 1 | Base OS | Fork the GrapheneOS source tree | AOSP dropped Pixel device trees with Android 16; GrapheneOS carries Pixel 10 support, verified boot with own keys, an OTA flow, sandboxed Play Services, and the hardening a component this privileged should sit on. Monthly rebase on the security release only. |
+| 2 | Device | Pixel 10 Pro XL, one device for the first year | Largest battery in the line, which is the binding constraint for always-on audio. Tensor G5 for DSP hotword, TPU, AICore. |
+| 3 | Google services | Sandboxed Play Services from the base | Covers most Google-dependent apps without privileged Google code. Wallet tap-to-pay is out; payments go through bank apps and bill-pay. |
+| 4 | Secure-window override | Yes | Money and accounts need buddy to read the bank and the codes. The hard limits in doc 03 are enforced in code whatever buddy can see. Patch scoped to buddy's capture domain only. |
+| 5 | Playback-capture override | Yes | Needed for VoIP call transcription. Same consent rules as phone calls. Scoped to buddy's audio domain. |
+| 6 | Microphone indicator | No standing indicator; a cue only when transcription (tier 3) starts | The phone is in a pocket, so a screen indicator informs nobody. Cue is a short haptic on the phone and watch plus a soft tone in the earbud, so the user always knows when buddy is transcribing. Bystanders are covered by the stop phrase, the participant-only default, and the user's own disclosure to close contacts. |
+| 7 | Transcription scope and budget | Conversations the user is part of, calendar meetings, and calls. Three hours a day. | Three hours at around a watt is roughly a sixth of the battery, which leaves a full day. Meetings and calls count against the budget but take priority over ambient conversation when it runs low. Overheard conversations are off. |
+| 8 | Cloud provider coupling | Accept it | Prompt caching, effort control, mid-conversation operator messages, and structured outputs are load-bearing. The cognition module keeps a thin adapter boundary so a swap is a rewrite of one module, not the system, and that is enough. |
+| 9 | First and second user | Founder only until Phase 4 exits | The second user joins after a security review by someone else, a clean build from a fresh checkout, and four consecutive weeks of every gate green on the founder's phone. |
+| 10 | Voice surface | Pixel Buds Pro 2 from Phase 1; Pixel Watch in Phase 4 | Earbuds are the user's own mic for commands and dictation and the channel for the brief, and they are needed as soon as tier-3 audio lands. The watch is the tap-to-resolve surface and the haptic cue; it waits until the escalation queue is stable. |
 
-3. **Google services.** No Play Services in the first build. Choose between microG,
-   sandboxed Play Services (needs porting from GrapheneOS), or accepting that some apps
-   do not work. Google Wallet tap-to-pay does not work on a build with our own
-   verified-boot key regardless, so payments through Wallet are out of scope; decide
-   whether card payments happen through bank apps instead.
+## Still open
 
-4. **Secure-window override.** Content capture and screenshots normally skip windows an
-   app flags as secure (banking, password managers, some messengers). A framework patch
-   can make buddy see them anyway. Taking it means buddy reads bank balances and
-   one-time codes from the screen, which the money and account playbooks need. Not
-   taking it means those domains stay on notifications and APIs. Recommendation: take
-   it, because the hard limits in doc 03 are enforced in code regardless of what buddy
-   can see, and because a buddy that cannot see the bank cannot run the money domain.
+Nothing blocks Phase 0. Items that will need a decision later, with the phase they
+block:
 
-5. **Playback-capture override.** Same shape: a patch lets buddy capture audio from apps
-   that opt out (most VoIP apps). Needed for transcribing VoIP calls. Recommendation:
-   take it, with the same consent rules as phone calls.
-
-6. **Microphone indicator and bystanders.** Android shows an indicator when the mic is
-   live. With continuous capture it would always be on, which is meaningless, and with
-   the phone in a pocket nobody sees it anyway. Options: keep the indicator (honest,
-   useless), remove it for buddy (invisible), or replace it with a physical or audible
-   cue only when transcription (tier 3) is active. Recommendation: the third, plus the
-   spoken stop phrase in doc 03. This is as much an ethical decision as a technical
-   one; make it deliberately.
-
-7. **Transcription scope and budget.** Default to transcribing conversations the user
-   is part of, with a daily minutes budget, and nothing else. Decide the starting budget
-   and whether meetings count against it.
-
-8. **Cloud model provider lock-in.** The plan is built around the Claude API. The
-   adapter layer keeps the cognition module provider-agnostic, but prompt caching,
-   effort control, and mid-conversation system messages are provider-specific and the
-   design leans on them. Accept the coupling or budget for an abstraction.
-
-9. **Who is the first user.** The plan assumes the founder is the first and only user for
-   months. Every metric, threshold, and autonomy default is tuned on one person's data
-   before it generalises. Decide when a second user is added and what has to be true
-   first.
-
-10. **Voice surface.** Earbuds are now the intended primary command channel from early
-    on, since the phone stays in the pocket. Decide which earbuds and whether the
-    watch is in the first year.
+- **Off-limits situation detection** beyond calendar and location (Phase 1): whether to
+  train a scene classifier for medical and intimate settings or rely on user-marked
+  places and a manual pause.
+- **Disclosure defaults per relationship class** for agent-sent messages (Phase 2): the
+  plan says no disclosure to close contacts and disclosure to organisations; confirm
+  once the style model is real.
+- **Watch model** (Phase 4): whichever Pixel Watch is current when Phase 4 starts.
 
 ## Known risks
 
@@ -66,7 +41,7 @@
 | Battery and thermal cost of always-on audio | High | Tiered pipeline with DSP hotword, VAD gating, a daily transcription budget, and NPU inference; measured per build. |
 | Bystander privacy and consent | High | Off-limits situations, user-is-a-participant default, spoken stop phrase, on-device only, no raw audio. Jurisdiction floor enforced. |
 | Content capture coverage gaps (Compose, Flutter, WebView) | Medium | Keep Accessibility and vision fallbacks; measure coverage per target app in Phase 1. |
-| Framework patch rebase cost | Medium | Small, well-isolated patches; monthly rebase as a scheduled task; port to GrapheneOS only once stable. |
+| Framework patch rebase cost against GrapheneOS's cadence | Medium | Small, well-isolated patches; rebase only on the monthly security release; exempt buddy's domains from their restrictions rather than removing the restrictions. |
 | buddy's own privilege becomes the attack surface | Critical | Per-subsystem SELinux domains; only cognition has network, only actuation can act, neither can do the other's job. See doc 03. |
 | Cloud reasoning cost | Medium | Triage on-device, cached stable prefix, effort tuned per task, cheaper worker model for bulk reads. Budget cap enforced. |
 | Loss of the device exposes the ledger | High | Ledger encrypted with a key in the hardware keystore, bound to the lock credential. |
