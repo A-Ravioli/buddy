@@ -58,15 +58,28 @@ object Actions {
         "Put an item back in front of the user later. Payload: event_id, until (epoch ms).",
     )
 
-    val all: List<ActionSpec> = listOf(
+    private val builtIn: List<ActionSpec> = listOf(
         SEND_MESSAGE, NOTIFICATION_REPLY, NOTIFICATION_MARK_READ, NOTIFICATION_DISMISS,
         ARCHIVE_EMAIL, LABEL_EMAIL, REPLY_EMAIL, UNSUBSCRIBE_EMAIL, RESPOND_INVITE, CREATE_EVENT, SNOOZE,
     )
+    private val extra = LinkedHashMap<String, ActionSpec>()
+    private val extraKeys = HashMap<String, List<String>>()
 
-    val byName: Map<String, ActionSpec> = all.associateBy { it.name }
+    /** Domains register their own actions at start-up (money, automation). Idempotent. */
+    @Synchronized
+    fun register(spec: ActionSpec, payloadKeys: List<String>) {
+        extra[spec.name] = spec
+        extraKeys[spec.name] = payloadKeys
+    }
+
+    val all: List<ActionSpec> get() = builtIn + extra.values
+
+    val byName: Map<String, ActionSpec> get() = all.associateBy { it.name }
 
     /** Payload keys per action, for the tool schema. */
-    val payloadKeys: Map<String, List<String>> = mapOf(
+    val payloadKeys: Map<String, List<String>> get() = builtInKeys + extraKeys
+
+    private val builtInKeys: Map<String, List<String>> = mapOf(
         SEND_MESSAGE.name to listOf("thread_id", "text"),
         NOTIFICATION_REPLY.name to listOf("notification_key", "text"),
         NOTIFICATION_MARK_READ.name to listOf("notification_key"),

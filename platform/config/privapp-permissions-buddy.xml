@@ -15,5 +15,7 @@
         <permission name="android.permission.PACKAGE_USAGE_STATS" />
         <permission name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
         <permission name="android.permission.START_FOREGROUND_SERVICES_FROM_BACKGROUND" />
+        <!-- Phase 3: actuation through input injection. -->
+        <permission name="android.permission.INJECT_EVENTS" />
     </privapp-permissions>
 </permissions>

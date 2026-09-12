@@ -73,6 +73,7 @@ class BuddyContentCaptureService : ContentCaptureService() {
         if (s.nodes.isEmpty()) return
         val root = buildTree(s.nodes.values.toList())
         val snap = CaptureSnapshot(s.packageName, s.activity, System.currentTimeMillis(), root)
+        latest[s.packageName] = snap
         val events = try {
             registry.parse(snap)
         } catch (t: Throwable) {
@@ -85,6 +86,9 @@ class BuddyContentCaptureService : ContentCaptureService() {
     companion object {
         private const val SETTLE_MS = 600L
 
+        /** The most recent snapshot per package, for the automation driver. */
+        val latest = java.util.concurrent.ConcurrentHashMap<String, CaptureSnapshot>()
+
         /**
          * Rebuilds a tree from the flat node list using parent autofill ids. Nodes whose
          * parent is unknown become children of a synthetic root, in arrival order.
@@ -96,16 +100,22 @@ class BuddyContentCaptureService : ContentCaptureService() {
                 val parent = n.parentAutofillId?.takeIf { it in byId }
                 childrenOf.getOrPut(parent) { ArrayList() }.add(n)
             }
-            fun convert(n: ViewNode): CaptureNode = CaptureNode(
-                className = n.className,
-                text = n.text?.toString(),
-                contentDescription = n.contentDescription?.toString(),
-                hint = n.hint,
-                resourceId = n.idEntry,
-                visible = n.visibility == android.view.View.VISIBLE,
-                children = childrenOf[n.autofillId]?.map(::convert) ?: emptyList(),
-            )
-            return CaptureNode(className = "root", children = childrenOf[null]?.map(::convert) ?: emptyList())
+            // ViewNode positions are relative to the parent; accumulate to absolute.
+            fun convert(n: ViewNode, offsetX: Int, offsetY: Int): CaptureNode {
+                val left = offsetX + n.left
+                val top = offsetY + n.top
+                return CaptureNode(
+                    className = n.className,
+                    text = n.text?.toString(),
+                    contentDescription = n.contentDescription?.toString(),
+                    hint = n.hint,
+                    resourceId = n.idEntry,
+                    visible = n.visibility == android.view.View.VISIBLE,
+                    children = childrenOf[n.autofillId]?.map { convert(it, left, top) } ?: emptyList(),
+                    bounds = if (n.width > 0 && n.height > 0) CaptureNode.Bounds(left, top, n.width, n.height) else null,
+                )
+            }
+            return CaptureNode(className = "root", children = childrenOf[null]?.map { convert(it, 0, 0) } ?: emptyList())
         }
     }
 }
