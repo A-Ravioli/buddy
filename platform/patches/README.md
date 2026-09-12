@@ -25,6 +25,7 @@ changes in Phase 0 is small.
 | 0010 | Concurrent low-priority ambient mic stream | patch, maybe | `frameworks/av` |
 | 0011 | Microphone indicator behaviour | patch | `frameworks/base` |
 | 0012 | Per-subsystem SELinux domains | patch, Phase 4 | `system/sepolicy`, `sepolicy/draft` |
+| 0013 | Remove viewer chrome: the launcher (no patch, Soong `overrides`), quick settings and recents in SystemUI | partly no patch, partly patch | `Android.bp`, `frameworks/base/packages/SystemUI` |
 
 ## 0007: board config hook
 
@@ -106,3 +107,12 @@ the audio pipeline when tier 3 starts. Not before Phase 1.
 subsystems are separate processes with separate uids or are moved into system_server
 as buddy system services. That is the Phase 4 work; the draft exists so the security
 review has something to read.
+
+## 0013: remove viewer chrome
+
+Phase 4. The stock launcher is removed with Soong `overrides` on the Buddy app module,
+so the HOME role has one candidate and there is no app grid. Quick settings and the
+recents overview in SystemUI assume someone is looking; a patch disables the recents
+gesture and reduces quick settings to the connectivity and torch tiles buddy cannot
+manage on the user's behalf. The status bar stays for the clock and battery. Verify by
+booting: home shows the timeline, swipe-up does nothing, quick settings has two tiles.
