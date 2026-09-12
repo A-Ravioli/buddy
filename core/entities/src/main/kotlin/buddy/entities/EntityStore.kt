@@ -16,6 +16,8 @@ data class Person(
     val relationship: String = "unknown",
     val eventCount: Long = 0,
     val lastSeenTs: Long = 0,
+    /** Messages the user has sent to this person. Zero means the user has never contacted them. */
+    val userMessages: Long = 0,
 )
 
 /** A conversation across sources. */
@@ -56,7 +58,8 @@ class EntityStore(private val db: SqlDriver) {
                     display_name TEXT,
                     relationship TEXT NOT NULL DEFAULT 'unknown',
                     event_count INTEGER NOT NULL DEFAULT 0,
-                    last_seen_ts INTEGER NOT NULL DEFAULT 0
+                    last_seen_ts INTEGER NOT NULL DEFAULT 0,
+                    user_messages INTEGER NOT NULL DEFAULT 0
                 )
                 """.trimIndent(),
             )
@@ -94,8 +97,8 @@ class EntityStore(private val db: SqlDriver) {
             .singleOrNull()?.let(::person)
 
     fun person(id: Long): Person? {
-        val row = db.query("SELECT id, display_name, relationship, event_count, last_seen_ts FROM people WHERE id = ?", listOf(id)) { r ->
-            Person(r.long(0)!!, r.string(1), emptySet(), r.string(2)!!, r.long(3)!!, r.long(4)!!)
+        val row = db.query("SELECT id, display_name, relationship, event_count, last_seen_ts, user_messages FROM people WHERE id = ?", listOf(id)) { r ->
+            Person(r.long(0)!!, r.string(1), emptySet(), r.string(2)!!, r.long(3)!!, r.long(4)!!, r.long(5)!!)
         }.firstOrNull() ?: return null
         val ids = db.query("SELECT key FROM identities WHERE person_id = ?", listOf(id)) { it.string(0)!! }.toSet()
         return row.copy(identities = ids)
@@ -141,11 +144,12 @@ class EntityStore(private val db: SqlDriver) {
             """
             UPDATE people SET
                 event_count = event_count + (SELECT event_count FROM people WHERE id = ?),
+                user_messages = user_messages + (SELECT user_messages FROM people WHERE id = ?),
                 last_seen_ts = MAX(last_seen_ts, (SELECT last_seen_ts FROM people WHERE id = ?)),
                 display_name = COALESCE(display_name, (SELECT display_name FROM people WHERE id = ?))
             WHERE id = ?
             """.trimIndent(),
-            listOf(from, from, from, into),
+            listOf(from, from, from, from, into),
         )
         db.exec("DELETE FROM people WHERE id = ?", listOf(from))
     }
@@ -174,6 +178,9 @@ class EntityStore(private val db: SqlDriver) {
         if (e.kind != EventKind.MESSAGE && e.kind != EventKind.CALL && e.kind != EventKind.CALENDAR_CHANGE) return
         val counterparty = e.structured["counterparty"] ?: e.actor?.takeIf { e.trust != Trust.USER }
         val person = counterparty?.takeIf { it != "me" }?.let { observe(it, e.structured["cached_name"], e.ts) }
+        if (person != null && e.trust == Trust.USER && e.kind == EventKind.MESSAGE) {
+            db.exec("UPDATE people SET user_messages = user_messages + 1 WHERE id = ?", listOf(person.id))
+        }
         val threadId = e.threadId ?: return
         val lastActor = when {
             e.trust == Trust.USER -> "me"

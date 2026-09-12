@@ -81,7 +81,8 @@ class ActPlannerTest {
     @Test
     fun `a proposal runs through policy to the executor and the model sees the verdict`() {
         val e = msg("can you confirm thursday?", "+15550000000")
-        entities.observe("+15550000000", "Sam", now - 86_400_000) // known contact, not first contact
+        // The user has messaged Sam before, so this is not a first contact.
+        entities.apply(msg("see you sat", "+15550000000", now - 86_400_000).copy(trust = Trust.USER, actor = "me"))
         val decisions = prepare(e)
         val agent = ScriptedAgent(listOf(mapOf(
             "action" to "send_message", "target" to "+15550000000",
@@ -137,7 +138,7 @@ class ActPlannerTest {
     @Test
     fun `style mismatch and second opinion both escalate`() {
         val e = msg("can you confirm thursday?", "+15550000000")
-        entities.observe("+15550000000", "Sam", now - 86_400_000)
+        entities.apply(msg("see you sat", "+15550000000", now - 86_400_000).copy(trust = Trust.USER, actor = "me"))
         entities.setRelationship(entities.personFor("tel:+15550000000")!!.id, "close")
         val decisions = prepare(e)
         val style = StyleBook.learn(mapOf("close" to listOf("yep x", "on my way x", "sure x", "ok x", "haha x")))

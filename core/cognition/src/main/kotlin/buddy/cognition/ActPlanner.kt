@@ -123,7 +123,9 @@ class ActPlanner(
             localHour = localHour,
             spentToday = spentToday,
             knownCodes = knownCodes,
-            firstContact = counterparty != null && person == null,
+            // First contact means the user has never messaged this counterparty, not that
+            // buddy has never seen them: anyone who texts the phone is "seen".
+            firstContact = counterparty != null && (person == null || person.userMessages == 0L),
             typicalAmount = null,
             suspectedInjection = injection == true,
             emergency = false,
