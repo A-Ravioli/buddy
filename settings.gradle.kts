@@ -42,3 +42,8 @@ include(":eval:metrics")
 // core/android-verify compiles its sources here anyway, against the full framework jar
 // and the Compose API, so CI catches errors in it without the platform tree.
 include(":core:android-verify")
+
+// Renders the app's screens on the host as PNGs, from the same sources. Opt-in, so the
+// default build does not compile the app twice:
+//   ./gradlew -Pshots :core:android-shots:run --args=/tmp/shots
+if (providers.gradleProperty("shots").isPresent) include(":core:android-shots")

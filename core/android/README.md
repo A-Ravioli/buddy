@@ -17,7 +17,8 @@ The surface is Jetpack Compose, built from the androidx prebuilts in the platfor
 `core/android-verify` compiles everything in this directory on the host (`./gradlew
 build`), against Robolectric's full framework jar and the Compose API, so a type or API
 error shows up in CI rather than on the build host. It does not check the Soong module
-names in `Android.bp`.
+names in `Android.bp`. `./gradlew -Pshots :core:android-shots:run --args=/tmp/shots`
+renders the surface's screens to PNGs on the host, from the same sources.
 
 Rule for this directory: no logic. Anything that decides what becomes an event, how
 it is keyed, or what it means belongs in `core/perception` or `core/ledger`, where it

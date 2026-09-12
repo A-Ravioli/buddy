@@ -58,24 +58,24 @@ import buddy.android.surface.theme.Type
  * one featured thing to look at. Buddy looks at whatever matters.
  */
 @Composable
-fun Onboarding(onFinished: () -> Unit) {
-    var phase by rememberSaveable { mutableIntStateOf(0) } // 0 = wake, 1 = steps
+fun Onboarding(onFinished: () -> Unit, startAt: Int = -1) {
+    var phase by rememberSaveable { mutableIntStateOf(if (startAt < 0) 0 else 1) } // 0 = wake, 1 = steps
     if (phase == 0) {
         WakeScreen(onDone = { phase = 1 })
     } else {
-        Steps(onFinished)
+        Steps(onFinished, startAt.coerceAtLeast(0))
     }
 }
 
 @Composable
-private fun Steps(onFinished: () -> Unit) {
+private fun Steps(onFinished: () -> Unit, startAt: Int) {
     val p = LocalPalette.current
     val context = LocalContext.current
     LaunchedEffect(Unit) { Bootstrapper.start(context) }
     val people by Bootstrapper.people.collectAsState()
     val bootstrap by Bootstrapper.result.collectAsState()
     val readingDone by Bootstrapper.done.collectAsState()
-    var index by rememberSaveable { mutableIntStateOf(0) }
+    var index by rememberSaveable { mutableIntStateOf(startAt.coerceIn(0, steps.lastIndex)) }
     var voiceCount by rememberSaveable { mutableIntStateOf(0) }
     var careful by rememberSaveable { mutableStateOf(true) }
     val step = steps[index]

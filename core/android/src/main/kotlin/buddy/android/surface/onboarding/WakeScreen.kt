@@ -61,8 +61,9 @@ fun WakeScreen(onDone: () -> Unit) {
         val density = LocalDensity.current
         val bodyDp = 120.dp
         val bodyRadiusPx = with(density) { bodyDp.toPx() } / 2f * (19f / 20f)
-        val coverPx = with(density) { hypot(maxWidth.toPx(), maxHeight.toPx()) } / 2f + 8f
         val centreY = maxHeight / 2f - 60.dp
+        // The circle sits above the middle, so it must reach the far bottom corners.
+        val coverPx = with(density) { hypot(maxWidth.toPx() / 2f, (maxHeight - centreY).toPx()) } + 8f
 
         Canvas(Modifier.fillMaxSize()) {
             val r = bodyRadiusPx + (coverPx - bodyRadiusPx) * radiusFraction.value
