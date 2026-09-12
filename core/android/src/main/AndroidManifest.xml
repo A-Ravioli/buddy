@@ -43,14 +43,16 @@
         android:allowBackup="false"
         android:theme="@android:style/Theme.DeviceDefault.DayNight">
 
-        <!-- The debug timeline. It is also the HOME activity: in Phase 0 the launcher is a
-             blank list of what buddy has seen. -->
+        <!-- The surface: the chat with buddy, the creature, the timeline, the first-run
+             walk-through. It is the HOME activity; there is no launcher grid behind it. -->
         <activity
-            android:name="buddy.android.ui.TimelineActivity"
+            android:name="buddy.android.surface.SurfaceActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
-            android:excludeFromRecents="true">
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Buddy.Surface">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -63,6 +65,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- The debug timeline: every raw event in the ledger, one line each. Reached from
+             the surface's playground; no longer the home. -->
+        <activity
+            android:name="buddy.android.ui.TimelineActivity"
+            android:exported="false" />
 
         <!-- Perception host: keeps the content observers, location, and device-state
              receivers alive. Persistent app, so this survives without a user-visible

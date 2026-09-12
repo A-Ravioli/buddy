@@ -19,6 +19,7 @@ class BuddyApp : Application() {
         LedgerHolder.init(this)
         Brain.init(this)
         Ingest.init(this)
+        buddy.android.surface.SurfaceStore.init(this)
         BriefScheduler.schedule(this)
         BriefScheduler.scheduleHoldRelease(this)
         IdleJobService.schedule(this)

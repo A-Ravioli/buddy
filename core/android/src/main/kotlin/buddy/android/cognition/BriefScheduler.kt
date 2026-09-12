@@ -12,7 +12,7 @@ import android.util.Log
 import app.buddy.R
 import buddy.android.BuddyApp
 import buddy.android.ledger.LedgerHolder
-import buddy.android.ui.BriefActivity
+import buddy.android.surface.SurfaceActivity
 import buddy.cognition.Planned
 import buddy.cognition.TriageRecorder
 import buddy.ledger.EventKind
@@ -63,6 +63,7 @@ object BriefScheduler {
                 null
             } ?: return@thread
             post(context, planned)
+            buddy.android.surface.SurfaceStore.onPlanned(planned)
             onDone?.invoke(planned)
         }
     }
@@ -117,7 +118,7 @@ object BriefScheduler {
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.brief_channel), NotificationManager.IMPORTANCE_DEFAULT))
         val open = PendingIntent.getActivity(
-            context, 0, Intent(context, BriefActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            context, 0, Intent(context, SurfaceActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val needs = p.brief.urgent.size + p.brief.decisions.size
         val title = if (needs == 0) context.getString(R.string.brief_nothing) else context.resources.getQuantityString(R.plurals.brief_needs_you, needs, needs)

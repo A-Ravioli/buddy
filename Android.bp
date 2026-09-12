@@ -158,7 +158,23 @@ android_app {
         "buddy-logistics",
         "buddy-voice",
         "buddy-profile",
+        // The surface (core/android/.../surface) is Jetpack Compose, from the androidx
+        // prebuilts in the platform tree (prebuilts/sdk/current/androidx), the same way
+        // SystemUI builds its Compose features. VERIFY the module names at the pinned tag.
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.foundation_foundation-layout",
+        "androidx.compose.ui_ui",
+        "androidx.compose.ui_ui-graphics",
+        "androidx.compose.ui_ui-text",
+        "androidx.compose.ui_ui-unit",
+        "androidx.compose.animation_animation",
+        "androidx.compose.animation_animation-core",
+        "androidx.activity_activity-compose",
+        "kotlinx_coroutines",
+        "kotlinx_coroutines_android",
     ],
+    kotlin_plugins: ["androidx.compose.compiler_compiler-hosted-plugin"],
     // Phase 4: buddy is the only home. The stock launcher is dropped from the build so
     // there is no app grid to fall back to. VERIFY the module names at the pinned tag.
     overrides: [

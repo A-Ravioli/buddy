@@ -1,0 +1,2 @@
+Newsreader (Production Type) and DM Sans (Colophon Foundry) are bundled under the
+SIL Open Font License 1.1. https://openfontlicense.org

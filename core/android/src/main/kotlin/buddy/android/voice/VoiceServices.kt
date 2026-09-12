@@ -60,7 +60,7 @@ class CommandSession(private val service: VoiceInteractionSessionService) : Voic
             override fun onResults(results: Bundle) {
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                 Log.i(BuddyApp.TAG, "heard: $text")
-                say(handle(CommandParser.parse(text)))
+                say(CommandHandler.handle(CommandParser.parse(text)))
                 hide()
             }
             override fun onError(error: Int) { say("Sorry, I didn't catch that."); hide() }
@@ -87,9 +87,15 @@ class CommandSession(private val service: VoiceInteractionSessionService) : Voic
     private fun say(text: String) {
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "buddy")
     }
+}
 
-    /** Commands go through policy like any other action; nothing here bypasses it. */
-    private fun handle(c: Command): String {
+/**
+ * What a command does. Shared by the voice session and the surface, so a held-to-talk
+ * sentence on the screen and a spoken one on the earbuds mean the same thing.
+ * Commands go through policy like any other action; nothing here bypasses it.
+ */
+object CommandHandler {
+    fun handle(c: Command): String {
         val ledger = LedgerHolder.getOrNull() ?: return "The ledger is locked until you unlock the phone."
         return when (c) {
             is Command.Brief -> ledger.recent(50).firstOrNull { it.kind == EventKind.BRIEF }?.text ?: "No brief yet."

@@ -47,9 +47,11 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | `eval/injection` | The injection corpus and the proof that policy stops every case. |
 | `eval/metrics` | The success metrics and the gate report from a ledger. |
 | `wear/` | The Pixel Watch app. Built with the Android SDK on the host. |
-| `core/android` | The buddy system app. Built by Soong inside the GrapheneOS tree. |
+| `core/android` | The buddy system app, including the surface (the chat, the creature, onboarding). Built by Soong inside the GrapheneOS tree. |
 | `platform/` | Product config, overlays, permissions, SELinux, patch specs, build scripts. |
 | `Android.bp` | Soong modules for the app and its config, read when this repo is `vendor/buddy`. |
+
+The surface's design lives on a canvas: https://claude.ai/code/artifact/83f7ec6f-8991-48c1-916f-22a7bd5f91ed
 
 Run the JVM tests anywhere with a JDK 17 or newer:
 
