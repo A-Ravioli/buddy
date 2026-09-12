@@ -109,6 +109,10 @@
         <receiver
             android:name="buddy.android.cognition.BriefScheduler$CycleReceiver"
             android:exported="false" />
+        <service
+            android:name="buddy.android.cognition.IdleJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
         <!-- Content capture: the framework streams every app's view text here. Assigned
              by config_defaultContentCaptureService in the overlay. -->

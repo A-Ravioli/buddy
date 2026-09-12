@@ -87,6 +87,7 @@ class EntityStoreTest {
         store.apply(msg("me", "yes", "sms:1", 2_000, trust = Trust.USER, structured = mapOf("counterparty" to "+447700900123")))
         t = store.thread("sms:1")!!
         assertEquals("me", t.lastActor)
+        assertEquals(1, store.personFor("tel:+447700900123")!!.userMessages)
         assertEquals(2, t.eventCount)
         // An older event arriving late must not flip last_actor.
         store.apply(msg("+447700900123", "old", "sms:1", 1_500))

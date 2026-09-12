@@ -22,6 +22,7 @@ class TimelineActivity : Activity() {
     private lateinit var list: ListView
     private lateinit var status: TextView
     private val fmt = SimpleDateFormat("MM-dd HH:mm", Locale.ROOT)
+    private var shown: List<Event> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +30,18 @@ class TimelineActivity : Activity() {
         title = getString(R.string.timeline_title)
         list = findViewById(R.id.events)
         status = findViewById(R.id.status)
+        // Long-press a completed action to undo it. The undo is a correction event and
+        // the strongest learning signal buddy gets.
+        list.setOnItemLongClickListener { _, _, position, _ ->
+            val e = shown.getOrNull(position) ?: return@setOnItemLongClickListener false
+            val exec = buddy.android.cognition.Brain.executor
+            if (e.kind == buddy.ledger.EventKind.ACTION && e.structured["state"] == "done" && exec != null) {
+                exec.undo(e)
+                Toast.makeText(this, R.string.undo_done, Toast.LENGTH_SHORT).show()
+                refresh()
+                true
+            } else false
+        }
     }
 
     override fun onResume() {
@@ -44,6 +57,7 @@ class TimelineActivity : Activity() {
             return
         }
         val events = ledger.recent(300)
+        shown = events
         status.text = "${ledger.count()} events"
         val lines = if (events.isEmpty()) listOf(getString(R.string.timeline_empty)) else events.map(::line)
         list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, lines)
