@@ -14,72 +14,78 @@ reasoning and action.
 ├──────────────────────────────────────────────────────────────────────┤
 │  CONTEXT        life ledger · entity graph · commitments · profile   │
 ├──────────────────────────────────────────────────────────────────────┤
-│  PERCEPTION     notifications · app connectors · UI tree · sensors   │
+│  PERCEPTION     content capture · notifications · connectors · audio │
 │  ACTUATION      APIs/intents · app automation · screen driving       │
 ├──────────────────────────────────────────────────────────────────────┤
-│  PLATFORM       AOSP (GrapheneOS base) · device owner · system svcs  │
+│  PLATFORM       buddy AOSP fork · system services · SELinux domains  │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 Everything flows event-first. An event arrives (a message, a notification, a calendar
-change, a location change, a timer). Perception normalises it into the ledger. Triage
+change, a location change, an utterance, a timer). Perception normalises it into the ledger. Triage
 decides whether it needs cognition now, later, or never. Cognition, when invoked, pulls
 the relevant slice of context, plans, and proposes actions. The policy engine decides
 whether each action runs, waits, or escalates. Actuation runs it. The ledger records the
 outcome. The surface shows the user only what the policy engine escalated.
 
-## Platform layer: how deep into Android
+## Platform layer: the fork is day one
 
-Three stages, each unlocked by hitting the walls of the one before.
+Two requirements decide this: **always-on audio** and **content capture across apps**.
+Neither can be granted to an app at runtime, even a device-owner app. Both are wired at
+the framework level (config overlays, signature permissions, audio policy), so buddy is
+an Android build from the first commit, not an app on someone else's build.
 
-### Stage 1: privileged system app on a stock AOSP build
+### What has to live in the framework
 
-Base: GrapheneOS on a Pixel (fallback: LineageOS). buddy ships as a single system app
-signed with the platform key, installed to the system partition, and enrolled as
-**device owner** at first boot. That single app holds every role that gives reach:
+| Capability | Why an app cannot have it | What the fork does |
+|---|---|---|
+| Content capture from every app | The `ContentCaptureService` implementer is fixed by the framework config overlay and must be a platform-signed system component | Set buddy as the content capture service; add a framework patch so windows flagged secure and apps that opt out still report to buddy (decision, see doc 06) |
+| Always-on hotword | Needs the voice interaction service role plus the SoundTrigger HAL; the sandboxed hotword process is a system component | buddy is the voice interaction service; hotword runs on the DSP through SoundTrigger; the isolated hotword detection process is buddy's |
+| Continuous ambient capture | Android hands the microphone to one client at a time; the privacy indicator and capture policy are framework code | Audio policy gives buddy's capture domain a permanent, concurrent, low-priority mic stream; indicator behaviour is a decision (doc 06) |
+| Both sides of a phone call | Voice-call audio source needs a signature-level capture permission | buddy is the dialer with that permission; call audio is transcribed on-device |
+| Audio from VoIP calls and media | Apps opt out of playback capture by manifest flag | Framework patch lets buddy's capture domain ignore the opt-out (decision, doc 06) |
+| Input injection into any app | Signature-level permission | buddy's actuation domain holds it; no Accessibility service needed for taps and text |
+| Notification interception before delivery | Ranking and posting are framework code | A notification ranker hook lets buddy decide what is shown before it is posted |
+| Survive Doze and app standby | Device owner exemption is enough for an app; a system service is simpler and cannot be killed | Core buddy services run as persistent system services |
+| Isolation between buddy's own parts | Apps get one SELinux domain | Each buddy subsystem gets its own SELinux domain with least privilege (see doc 03) |
 
-| Android role or permission | What it gives buddy |
-|---|---|
-| Default launcher (`ROLE_HOME`) | Owns the home screen; can make it a blank brief instead of an app grid |
-| Default assistant (`ROLE_ASSISTANT`) | Long-press and voice hotword invoke buddy; gets assist structure from the foreground app |
-| Default SMS app (`ROLE_SMS`) | Full read and send over SMS, MMS, RCS where the carrier stack allows |
-| Default dialer (`ROLE_DIALER`) | Place and answer calls, in-call UI, call screening (`CallScreeningService`) |
-| `NotificationListenerService` | Every notification from every app, including actions like reply and mark-read |
-| `AccessibilityService` | Read the UI tree of any foreground app and inject taps, text, scrolls |
-| `MediaProjection` (persistent, as device owner) | Screenshots for vision-based understanding when the UI tree is not enough |
-| Device owner | Exempt from background execution limits, silent install of connectors, lock task, policy control, persistent foreground service without user-dismissable notification |
-| Usage stats, call log, contacts, calendar provider | Structured history and identity data |
-| Companion device manager | Pair a watch or earbuds as a first-class surface |
+Everything else buddy needs (launcher, assistant, SMS, dialer, notification listener
+roles; usage stats; contacts; calendar; location) works the same way in the fork as it
+would have for a system app, and stays app-level code inside the build.
 
-Why stage one is a system app and not a ROM: the wall between a device-owner system app
-and a custom ROM is thin, and a system app is orders of magnitude cheaper to iterate on.
-Almost every "the agent can see and do X" requirement lands inside this envelope.
+### Base
 
-### Stage 2: buddy AOSP fork with system services
+Plain **AOSP for Pixel**, built from the monthly tags with Google's published vendor
+binaries, bootloader relocked with our own verified-boot key. Reasons over GrapheneOS as
+the base:
 
-Move into the OS when these show up as real blockers:
+- The patch set is now deep (audio policy, content capture, window manager, SELinux
+  policy). Rebasing it on GrapheneOS's fast release cadence and its hardening patches
+  in the same files is a steady tax for one team.
+- GrapheneOS deliberately removes or restricts several of the privileged paths above.
+  Re-enabling them means fighting the base.
+- Pixel's Tensor SoC has the DSP hotword path and an NPU that on-device speech and
+  triage models need, and AOSP for Pixel exposes both.
 
-- **Always-on audio.** Continuous transcription of calls and ambient voice commands
-  needs a system audio HAL client, not an app.
-- **Cross-app data without the Accessibility path.** A system content-capture service
-  (Android has `ContentCaptureService`, used today by autofill) can receive structured
-  view content from every app without the Accessibility API's latency and brittleness.
-- **Interception before delivery.** A notification ranking service and a message routing
-  service in the framework let buddy decide what the user sees before the notification
-  exists, instead of cancelling it after.
-- **Network-level visibility.** A VPN service can run as an app, but a system-level
-  packet filter is cheaper and cannot be disabled by another app.
-- **Removing the app grid entirely.** Ship without a launcher, settings, or SystemUI
-  chrome that assumes the user is looking.
+GrapheneOS remains the right base to port to once the patch set is stable, for its
+hardening and its sandboxed Play Services. That is a later phase, not the start.
 
-The fork is GrapheneOS with buddy patches, tracked as a set of feature branches rebased
-on each upstream release. Everything that can stay in the system app stays there.
+### What this costs
 
-### Stage 3: hardware posture
+- A build farm (a machine with 64 GB or more of memory and a fast disk; hours per full
+  build), a signing setup with platform, release, and verified-boot keys, and an OTA
+  pipeline so the founder's phone can update without a wipe.
+- A monthly rebase onto the new AOSP security tag.
+- Around four to six extra weeks before any buddy feature ships, spent on the build and
+  provisioning path. The roadmap in doc 05 absorbs this in Phase 0.
+- No Google Play Services in the first build. Apps that hard-depend on them (some
+  banking, Google Wallet, RCS through Google's stack) work only after microG or
+  sandboxed Play Services are integrated. Tracked in doc 06.
 
-Not a custom phone. A Pixel with the screen off by default, always-on display disabled,
-and a watch or earbuds as the primary interface. The phone becomes a modem, a sensor
-pack, and a compute node. The only screen surface is the escalation queue.
+### Hardware posture
+
+Unchanged: a Pixel with the screen off by default, earbuds and a watch as the primary
+surface. Tensor is now a hard requirement for the on-device audio path.
 
 ## Perception layer
 
@@ -87,13 +93,13 @@ Every input is normalised to one **Event** record:
 
 ```
 Event {
-  id, ts, source_app, channel,           // gmail, sms, whatsapp, calendar, bank, ...
-  kind,                                  // message, notification, calendar_change, location, ...
-  actor,                                 // resolved Person entity or raw sender
+  id, ts, source_app, channel,           // gmail, sms, whatsapp, calendar, bank, speech, screen, ...
+  kind,                                  // message, notification, calendar_change, location, utterance, screen_state, ...
+  actor,                                 // resolved Person entity or raw sender / speaker
   thread_id,                             // conversation grouping across sources
   content { text, attachments, structured }, // structured = parsed fields (amount, date, tracking no.)
   trust: "untrusted",                    // ALL external content is untrusted; see doc 03
-  raw_ref                                // pointer to the original for replay
+  raw_ref                                // pointer to the original for replay (never raw audio)
 }
 ```
 
@@ -102,21 +108,81 @@ Perception sources, in order of preference:
 1. **Native APIs and connectors.** Gmail API, CalDAV or Google Calendar API, IMAP, bank
    APIs where available, carrier RCS. Structured, reliable, reversible. Use whenever an
    app has one.
-2. **Notification stream.** Cheap, universal, covers every app. Enough for triage and
-   for most read paths. Notification actions (reply, archive, mark read) cover a large
-   share of the act paths too.
-3. **UI tree via Accessibility or content capture.** For apps with no API: read the
-   conversation view, the order status, the form. Needs per-app adapters that know the
-   view hierarchy.
-4. **Screenshots plus vision.** Last resort, for apps that render custom views. The
-   frontier model reads the screen. Slow and expensive, so cached aggressively and used
-   only when the tree path fails.
-5. **Sensors.** Location, motion, connectivity, battery, calendar time. These set the
+2. **Content capture.** The framework streams every view's text and structure changes
+   from every app to buddy, continuously, without the app being in the foreground for
+   a screenshot and without the Accessibility API's latency. This is the primary read
+   path for apps without an API: the message list, the order status, the form, the
+   notification detail. Standard View-toolkit apps report reliably; Compose, Flutter,
+   and WebView content report partially or not at all on some releases, so the next two
+   paths stay.
+3. **Notification stream.** Cheap, universal, covers every app. Enough for triage and
+   for most read paths, and notification actions cover a large share of the act paths.
+4. **UI tree via Accessibility.** Fallback for apps whose views do not report through
+   content capture. Needs per-app adapters that know the view hierarchy.
+5. **Screenshots plus vision.** Last resort, for apps that render custom views. The
+   frontier model reads the screen. Slow and expensive, so cached aggressively.
+6. **Audio.** The audio pipeline below. Produces `utterance` events (who said what,
+   when, in which situation) and situation signals (in a meeting, in a car, TV on).
+7. **Sensors.** Location, motion, connectivity, battery, calendar time. These set the
    *situation* (in a meeting, driving, asleep, abroad) that policy uses.
 
 Each app gets a **connector**: a module that knows how to read from and write to that
 app through the best available path, and how to translate between the app's concepts
-and buddy's Event and Action schemas. Connectors are the long tail of the project.
+and buddy's Event and Action schemas. With content capture as the default read path,
+most connectors are a parser for that app's view content plus an actuation recipe,
+which is far less brittle than Accessibility-driven scraping.
+
+## Audio pipeline
+
+"Always-on" cannot mean "transcribe everything all day". A streaming speech model on
+the phone's NPU draws on the order of a watt, and a Pixel battery holds roughly 18 watt
+hours, so all-day transcription is the whole battery. The pipeline is tiered so the
+expensive stage runs only when there is speech worth hearing.
+
+| Tier | Runs on | Rough power | Always on? | Output |
+|---|---|---|---|---|
+| 0 Hotword | Audio DSP via SoundTrigger | Negligible | Yes | Wake event |
+| 1 Voice activity and scene | Application processor, tiny model | Tens of milliwatts | Yes | Speech present or not; scene (conversation, TV, car, silence) |
+| 2 Speaker gate | Application processor, small model | Low, only while speech present | While speech present | Is the user speaking; is a known voice speaking |
+| 3 Streaming transcription | NPU, Whisper-class or streaming model | Around a watt | Only while speech present and the situation says it matters | Utterance events with speaker labels |
+| 4 Understanding | On-device triage model, then cloud for hard cases | As per cognition | Per utterance batch | Commitments, requests, situation updates, commands |
+
+Rules that keep this workable:
+
+- **Tier 3 is gated by situation, not just by speech.** A meeting on the calendar, a
+  phone call, a detected two-way conversation with the user speaking, or the hotword.
+  Background TV and other people's conversations the user is not part of are
+  transcribed only if the user has turned that on.
+- **Raw audio is never persisted.** Transcripts are, as `utterance` events. Speaker
+  embeddings for the user (enrolled) and for people the user chooses to enrol are the
+  only voice data kept.
+- **A daily transcription budget** in minutes, enforced by policy, with the brief
+  reporting usage. Start with a couple of hours a day, which costs a modest share of the
+  battery, and tune from there.
+- **Commands are speaker-verified.** Only the enrolled user's voice can instruct buddy.
+  Every other voice is data (see doc 03 on voice injection).
+
+Sources feeding the pipeline:
+
+- **Ambient microphone.** Through buddy's own capture domain with a concurrent,
+  low-priority stream, so other apps using the mic (a video call) are not blocked and
+  buddy still hears the user's side.
+- **Phone calls.** Both sides through the dialer's voice-call capture. Consent handling
+  per jurisdiction is in doc 03.
+- **VoIP and media.** Playback capture with the opt-out overridden for buddy, plus the
+  mic for the user's side. Same consent handling as phone calls.
+- **Earbuds and watch.** When paired, they are the preferred mic for the user's own
+  voice: better signal, and the phone can stay in a pocket.
+
+What the audio pipeline gives the rest of the system:
+
+- **Verbal commitments** ("I'll send that tonight", "let's do Thursday") become
+  Commitment entities like anything typed.
+- **In-person context** the apps never see: what was agreed in a meeting, what a friend
+  asked for over dinner, what the doctor said.
+- **Situation** with far better fidelity than sensors alone: in a meeting, in a
+  conversation, alone, driving with a passenger.
+- **The voice surface itself**: hotword, dictated replies, spoken corrections.
 
 ## Context layer
 
@@ -212,16 +278,20 @@ Mirrors perception. Preference order:
    provider. Fire an `ACTION_VIEW` or app-specific deep link. Reliable and testable.
 2. **Notification actions.** Inline reply, archive, mark-read, snooze. Cheap and covers
    most messaging apps.
-3. **App automation through the connector.** Accessibility or content-capture driven
-   sequences: open the delivery app, find the order, tap reschedule, pick a slot. Each
-   step verifies the screen state before proceeding and aborts to escalation on drift.
+3. **App automation through the connector.** Framework-level input injection driven by
+   the connector's recipe, with content capture confirming each screen state before the
+   next step. No Accessibility service in the loop, so it is faster and does not
+   announce itself to the app. Aborts to escalation on drift.
 4. **Screen driving with vision.** The computer-use pattern: screenshot, model picks the
-   next action, repeat. Reserved for one-off tasks in apps without an adapter. Always
+   next action, repeat. Reserved for one-off tasks in apps without a recipe. Always
    runs at the most conservative autonomy level.
+5. **Voice.** Speaking on a call (screening, holding, confirming an appointment) through
+   on-device text-to-speech routed into the call's uplink.
 
 Every actuation is wrapped in a transaction: preconditions checked, action taken,
-postcondition observed (did the message actually send, did the event actually appear),
-result written to the ledger. Failures escalate; they never retry blindly.
+postcondition observed (did the message actually send, did the event actually appear,
+did the screen change as expected), result written to the ledger. Failures escalate;
+they never retry blindly.
 
 ## Surface layer
 
@@ -244,13 +314,14 @@ The user-facing part is deliberately tiny.
 | Layer | Choice | Why |
 |---|---|---|
 | Language | Kotlin (app and services), C++ for on-device inference glue | Native Android |
-| Base OS | GrapheneOS, Pixel | Security, de-Googled, well maintained |
+| Base OS | AOSP for Pixel, monthly tags, own verified-boot keys; GrapheneOS port later | Deep framework patches are cheapest to carry on plain AOSP; Tensor gives the DSP hotword path and NPU |
 | Persistence | SQLite via Room, `sqlite-vec` for embeddings, SQLCipher for encryption at rest | Local, fast, one file to back up |
 | On-device model | AICore / Gemini Nano where present; llama.cpp with a quantised 2 to 4B model otherwise | Triage and extraction without network |
 | Embeddings | On-device small embedding model | Retrieval without leaking content |
 | Cloud reasoning | Anthropic Java SDK from Kotlin; Messages API with tool use, prompt caching, structured outputs, adaptive thinking | Frontier planning and action |
-| Scheduling | Foreground service under device owner; WorkManager for idle-time jobs | Survives Doze |
-| Voice | On-device ASR (Whisper-class model) and TTS | Privacy, latency |
+| Scheduling | Persistent system services for perception, audio, and policy; WorkManager for idle-time jobs | Cannot be killed; no Doze workarounds |
+| Audio | SoundTrigger hotword on the DSP; on-device VAD, speaker verification, streaming ASR on the NPU; on-device TTS | Privacy, latency, battery |
+| Isolation | One SELinux domain per buddy subsystem; policy engine and actuation in separate processes | Least privilege inside buddy itself |
 | Testing | Replayable ledger fixtures; connector contract tests against app UI snapshots; policy tests as truth tables | Deterministic agent evaluation |
 | Observability | Local structured logs; opt-in export of anonymised traces for eval | Debug without leaking |
 
@@ -258,10 +329,12 @@ The user-facing part is deliberately tiny.
 
 ```
 buddy/
-  platform/        AOSP patches, device-owner provisioning, build scripts
+  platform/        AOSP manifest and patch set (audio policy, content capture, window manager,
+                   notification ranker, input injection), SELinux policy, signing, OTA, build scripts
   core/
     ledger/        event store, entity graph, profile, retrieval index
-    perception/    notification listener, accessibility bridge, sensors, connector host
+    perception/    content capture service, notification listener, accessibility fallback, sensors, connector host
+    audio/         hotword, VAD, speaker gate, streaming ASR, call and playback capture, TTS
     cognition/     triage model runtime, cloud agent loop, prompt assets, tool registry
     policy/        autonomy levels, gating rules, budgets, hard limits
     actuation/     action executor, transactions, undo, verification

@@ -73,6 +73,9 @@ Measured on a daily basis, for the person using the phone:
 | Escalations to the user per day | Under 10, delivered as one or two batched briefs |
 | Regret rate (actions the user reverses or corrects) | Under 1 percent of autonomous actions |
 | Missed critical items | Zero (a critical item is one the user says should have interrupted them) |
+| Battery | A full day on a charge with audio and capture running, at the user's usual usage |
+| Conversations captured that the user is glad to have | High; measured by asking in the weekly brief |
+| Conversations captured that the user wishes were not | Zero; any instance tightens the off-limits rules |
 
 The regret rate and missed-critical count are the safety metrics. They gate how much
 autonomy the system is allowed to take on.
@@ -84,4 +87,6 @@ autonomy the system is allowed to take on.
 - Not multi-user or family accounts. One phone, one person.
 - Not a new app ecosystem. It drives existing Android apps.
 - Not fully offline. The frontier reasoning runs in the cloud. Offline mode degrades to
-  triage and drafts.
+  triage, transcription, recall, and drafts.
+- Not a wearable recorder for other people. Audio is for the user's own conversations
+  and calls, on the device, under the consent rules in doc 03.

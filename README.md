@@ -22,13 +22,14 @@ This repo currently holds the plan. Read it in order:
 
 ## The one-paragraph version
 
-Build it in three stages. Stage one is a privileged system app on a de-Googled AOSP
-build (GrapheneOS or LineageOS on a Pixel) that becomes the default launcher, assistant,
-SMS app, dialer, and notification listener, and is enrolled as device owner. That gets
-roughly ninety percent of the reach with none of the ROM maintenance. Stage two moves
-the pieces that hit platform walls (background execution, cross-app data access,
-always-on audio) into the OS as system services in a buddy AOSP fork. Stage three is
-the hardware: a phone whose default state is screen-off, with voice and a watch or
-earbuds as the primary surface. Throughout, context stays on the device in a local
-ledger, a small on-device model triages the firehose, and a frontier model in the cloud
-plans and acts only on the slice of context each task needs.
+buddy is an Android build, not an app. Two requirements decide that: always-on audio
+and content capture across every app, both of which are framework capabilities that no
+app can be granted. So Phase 0 is a buddy fork of AOSP for Pixel with our own keys,
+with buddy's subsystems running as system services in separate SELinux domains. The
+perception layer reads every app through content capture, notifications, and APIs. A
+tiered audio pipeline listens on the DSP for free, transcribes on the NPU only when the
+user is in a conversation that matters, and never stores raw audio. Everything lands in
+an encrypted on-device ledger. A small on-device model triages the firehose; a frontier
+model in the cloud plans and acts only on the slice of context each task needs, and
+every action it proposes passes a policy engine it cannot bypass. The phone's default
+state is screen-off in a pocket, with earbuds as the primary surface.

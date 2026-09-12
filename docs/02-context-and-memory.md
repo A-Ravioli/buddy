@@ -10,9 +10,14 @@ An append-only, encrypted, local store of every Event the perception layer produ
 ones. It is the source of truth for everything the agent believes, and it is what makes
 the agent's behaviour replayable and testable.
 
-Sizing: a heavy user generates a few hundred events a day. With text bodies and
-structured fields, that is tens of megabytes a year. Attachments are stored by reference
-to the owning app and pulled on demand.
+Sizing: a heavy user generates a few hundred app events a day. With text bodies and
+structured fields, that is tens of megabytes a year. Speech changes the scale: a couple
+of hours of transcribed conversation a day is on the order of ten thousand words, so
+`utterance` events dominate the ledger by volume within weeks. They are stored as
+per-conversation transcripts with speaker labels, indexed the same way as everything
+else, and summarised into `memory_note` events during idle cycles so retrieval does
+not have to read raw transcripts. Attachments are stored by reference to the owning
+app and pulled on demand. Raw audio is never stored.
 
 ## Derived layers
 
@@ -23,7 +28,8 @@ demand and updated incrementally during idle cycles.
 
 | Entity | Sources | Key attributes |
 |---|---|---|
-| Person | Contacts, senders, mentions, call log | Identities across apps (same person on email, WhatsApp, SMS), relationship (family, close friend, colleague, service), reply expectations, tone the user uses with them |
+| Person | Contacts, senders, mentions, call log, voices | Identities across apps (same person on email, WhatsApp, SMS), relationship (family, close friend, colleague, service), reply expectations, tone the user uses with them, voice embedding if enrolled |
+| Conversation | Audio pipeline, calls | Who was present, where, when; transcript; commitments and requests extracted; whether the user consented to keep it |
 | Organisation | Senders, transactions, apps | Bank, landlord, employer, gym, airline; account references |
 | Thread | Conversations across sources | Open or closed, who owes whom a reply, topic |
 | Commitment | Extracted from messages, calendar, the user's own words | "I'll send it Friday", "dinner at 8", "pay by the 15th"; owner, due, status |
@@ -87,6 +93,9 @@ weight signal and are always consolidated into a note.
 | Data | Where it lives | Who sees it |
 |---|---|---|
 | Ledger, entity graph, index | Device only, SQLCipher, key in hardware keystore bound to the lock credential | Nobody but the device |
+| Transcripts of conversations and calls | Device only, same store, flagged by consent state | Nobody but the device; never included in a cloud slice unless the task is about that conversation and the user has allowed it |
+| Screen content from content capture | Device only; parsed into events, raw view dumps discarded after parsing | Nobody but the device |
+| Voice embeddings | Keystore-backed store, not the ledger | Nobody but the device |
 | Profile | Device; sent as cached system prefix on cloud calls | Model provider, transiently, under their retention terms |
 | Context slice | Device; sent per task | Model provider, transiently |
 | Model outputs | Written back to the ledger | Device |
@@ -98,6 +107,13 @@ Rules:
   secrets (card numbers, one-time codes) before the slice leaves the device, unless the
   task is specifically about them.
 - **Never send the whole ledger.** There is no "upload everything" path, by design.
+- **Other people's words stay home by default.** When a task needs what was said in a
+  conversation, the slice carries the extracted commitments and the user's own
+  utterances first; third-party speech is included only when the task cannot be done
+  without it, and the timeline shows that it was.
+- **Content capture is parsed, not hoarded.** The raw stream of view text from every app
+  is turned into typed events by the connector parsers on the device and then dropped.
+  There is no searchable "everything that was ever on the screen" store.
 - **On-device wherever a small model is good enough.** Triage, extraction, embeddings,
   speech.
 - **Opt-in trace export** for improving the system, anonymised and reviewed by the user

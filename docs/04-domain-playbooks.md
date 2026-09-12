@@ -104,7 +104,9 @@ human decision.
 
 ## Calls
 
-**Reach:** Default dialer, call screening service, on-device transcription.
+**Reach:** Default dialer with voice-call capture for both sides, call screening
+service, on-device transcription, TTS into the uplink. VoIP calls through playback
+capture plus the mic.
 
 **Passive handling:**
 - Screen unknown callers: answer, ask purpose, transcribe, decide. Spam is dropped.
@@ -113,8 +115,43 @@ human decision.
   instruction). Anything else takes a message and escalates.
 - Known callers ring through according to the situation (in a meeting: decline with a
   text and offer a callback slot; asleep: only the emergency list rings).
+- Every call the user takes is transcribed on-device (subject to the consent rules in
+  doc 03), and commitments made on the call become Commitment entities: "I'll email
+  you the form" creates a task; "they said the part arrives Tuesday" creates an
+  expectation to track.
 - Outbound: place calls the user asked for and stay on the line for hold queues,
-  handing off when a human answers.
+  handing off when a human answers, with a whispered summary in the earbud of what the
+  call is about.
+
+## Conversations and ambient context
+
+**Reach:** The audio pipeline (doc 01), gated by situation and by the consent rules in
+doc 03.
+
+**Passive handling:**
+- Meetings: transcribe, extract decisions, actions, and who owes what. Actions assigned
+  to the user become Tasks; things others promised become expectations to chase. A
+  meeting summary is written to the ledger and offered in the evening brief.
+- In-person plans: "dinner Thursday at ours" over coffee becomes a tentative calendar
+  entry and a Commitment, confirmed in the brief if the other party is not in a
+  messaging thread already.
+- Requests in passing: "can you send me that photo" from a friend, if the speaker is
+  enrolled, drafts the message at the messaging domain's autonomy level.
+- Situation: a two-way conversation in progress suppresses the brief and non-emergency
+  escalations; a car scene switches to voice-only; silence after the usual bedtime
+  starts quiet hours early.
+- Recall on demand: "what did the plumber say about the boiler" answered from the
+  transcript index, on the device, without a cloud call where the on-device model can
+  handle it.
+
+**Never:**
+- Transcribe a situation on the off-limits list.
+- Treat any voice but the user's as a command.
+- Send third-party speech to the cloud unless a task requires it and the timeline
+  records it.
+
+**Level defaults:** listening and extracting is on; anything that sends or books stays
+at the owning domain's level.
 
 ## Accounts and admin
 
@@ -141,7 +178,7 @@ human decision.
 
 ## Device
 
-**Reach:** Device owner policy, settings provider.
+**Reach:** System settings provider and device policy from inside the build.
 
 **Passive handling:**
 - Do-not-disturb, ringer, brightness, and battery saver driven by situation, not by
@@ -159,6 +196,7 @@ Format, spoken or read, in under a minute:
 3. What buddy did since the last brief, grouped by domain, counts not lists, with
    anything unusual called out.
 4. What is coming up: next commitments, deliveries, travel.
-5. One line on system health if anything changed.
+5. One line on system health if anything changed, including minutes of audio
+   transcribed and battery cost.
 
 If nothing needs the user, the brief is one sentence and it says so.
