@@ -34,6 +34,7 @@ include(":core:voice")
 include(":core:profile")
 include(":eval:replay")
 include(":eval:injection")
+include(":eval:metrics")
 
 // The Android app (core/android) is not a Gradle module. It uses platform and system
 // APIs (the content capture service, for one) that the public SDK does not expose, so

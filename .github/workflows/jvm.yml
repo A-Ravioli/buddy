@@ -16,7 +16,7 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: Build and test every JVM module
-        run: ./gradlew --no-daemon -Dkotlin.compiler.execution.strategy=in-process build -x :eval:replay:distTar -x :eval:replay:distZip
+        run: ./gradlew --no-daemon -Dkotlin.compiler.execution.strategy=in-process build -x :eval:replay:distTar -x :eval:replay:distZip -x :eval:metrics:distTar -x :eval:metrics:distZip
       - name: Shell script syntax
         run: bash -n platform/scripts/*.sh
       - uses: actions/upload-artifact@v4

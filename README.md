@@ -21,6 +21,12 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | [docs/06-open-questions.md](docs/06-open-questions.md) | Decisions made, what is still open, and known risks |
 | [docs/phase-0.md](docs/phase-0.md) | Phase 0 status: what exists, what is verified, what needs the build host or the phone |
 | [docs/phase-1.md](docs/phase-1.md) | Phase 1 status: triage, entities, the brief, the audio gate, the eval harness |
+| [docs/phase-2.md](docs/phase-2.md) | Phase 2 status: policy engine, actuation, connectors, the act loop, style, memory |
+| [docs/phase-3.md](docs/phase-3.md) | Phase 3 status: app automation, money, logistics, voice, the vision fallback |
+| [docs/phase-4.md](docs/phase-4.md) | Phase 4 status: hardening, the watch, bystander controls, onboarding |
+| [docs/phase-5.md](docs/phase-5.md) | Phase 5 status: the gate report and the second user |
+| [docs/security-review.md](docs/security-review.md) | The review checklist a second person works through before Phase 4 ships |
+| [docs/second-user.md](docs/second-user.md) | The procedure for adding a second user |
 
 ## Repository layout
 
@@ -32,7 +38,15 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | `core/entities` | People across apps, threads, recurring charges. JVM, tested. |
 | `core/cognition` | Context slices, untrusted envelopes, the Claude client, the brief planner. JVM, tested. |
 | `core/audio` | When transcription may run: off-limits rules, daily budget, participant rule. JVM, tested. |
+| `core/policy` | The security boundary: action classification, autonomy levels, hard limits in code, the trust ladder, onboarding. JVM, tested. |
+| `core/actuation` | Actions, connectors, the executor with holds and undo, the email connector. JVM, tested. |
+| `core/style` | How the user writes to each relationship class; a gate on drafts. JVM, tested. |
+| `core/automation` | App recipes over captured screens with drift detection. JVM, tested. |
+| `core/money`, `core/logistics`, `core/voice`, `core/profile` | Domain logic: money, deliveries and travel, voice commands, profile bootstrap. JVM, tested. |
 | `eval/replay` | Replay a ledger through triage and score it against labels. |
+| `eval/injection` | The injection corpus and the proof that policy stops every case. |
+| `eval/metrics` | The success metrics and the gate report from a ledger. |
+| `wear/` | The Pixel Watch app. Built with the Android SDK on the host. |
 | `core/android` | The buddy system app. Built by Soong inside the GrapheneOS tree. |
 | `platform/` | Product config, overlays, permissions, SELinux, patch specs, build scripts. |
 | `Android.bp` | Soong modules for the app and its config, read when this repo is `vendor/buddy`. |
