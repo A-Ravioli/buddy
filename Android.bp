@@ -115,6 +115,14 @@ java_library {
 }
 
 java_library {
+    name: "buddy-profile",
+    srcs: ["core/profile/src/main/kotlin/**/*.kt"],
+    static_libs: ["buddy-ledger", "buddy-entities", "buddy-policy", "buddy-triage", "buddy-style"],
+    sdk_version: "system_current",
+    system_ext_specific: true,
+}
+
+java_library {
     name: "buddy-cognition",
     srcs: ["core/cognition/src/main/kotlin/**/*.kt"],
     static_libs: [
@@ -149,6 +157,13 @@ android_app {
         "buddy-money",
         "buddy-logistics",
         "buddy-voice",
+        "buddy-profile",
+    ],
+    // Phase 4: buddy is the only home. The stock launcher is dropped from the build so
+    // there is no app grid to fall back to. VERIFY the module names at the pinned tag.
+    overrides: [
+        "Launcher3",
+        "Launcher3QuickStep",
     ],
     // System APIs (ContentCaptureService) and, later, hidden ones. platform_apis
     // compiles against the framework itself.

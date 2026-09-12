@@ -31,6 +31,7 @@ include(":core:automation")
 include(":core:money")
 include(":core:logistics")
 include(":core:voice")
+include(":core:profile")
 include(":eval:replay")
 include(":eval:injection")
 

@@ -106,6 +106,9 @@
 
         <!-- The brief and the escalation queue. -->
         <activity
+            android:name="buddy.android.ui.OnboardingActivity"
+            android:exported="false" />
+        <activity
             android:name="buddy.android.ui.BriefActivity"
             android:exported="true"
             android:launchMode="singleTop" />

@@ -13,6 +13,13 @@
     <string name="brief_running">Running a cycle…</string>
     <string name="brief_status">Last brief: %1$s. %2$d waiting for you. Tap to refresh.</string>
     <string name="brief_queue_empty">Nothing waiting for you.</string>
+    <string name="onboarding_title">Getting to know you</string>
+    <string name="onboarding_intro">buddy is reading what is already on this phone to set sensible defaults. Everything it infers can be changed by telling it.</string>
+    <string name="onboarding_running">Reading your history…</string>
+    <string name="onboarding_not_ready">Unlock the phone and let buddy observe for a day first.</string>
+    <string name="onboarding_done">Defaults written. Say "buddy" to enrol your voice.</string>
+    <string name="onboarding_enrol_hint">Voice enrolment: say a few sentences when asked, so only your voice can give commands.</string>
+    <string name="onboarding_restart">Profile saved; it applies from the next brief.</string>
     <string name="undo_done">Undone. buddy will remember.</string>
     <plurals name="brief_needs_you">
         <item quantity="one">%d thing needs you</item>
