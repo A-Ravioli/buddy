@@ -159,6 +159,9 @@ class CognitionTest {
         fake.status = "refusal"
         val r = planner.plan(listOf(e), decisions, now + 1, "evening")
         assertEquals("cloud_refused", r.source)
-        assertEquals(1, r.brief.decisions.size)
+        // The message carries a code, so triage filed it: the fallback has nothing to decide.
+        assertEquals(0, r.brief.decisions.size)
+        assertTrue(r.brief.spoken.startsWith("Nothing needs you"))
+        assertFalse(r.brief.spoken.contains("998877"))
     }
 }
