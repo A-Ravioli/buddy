@@ -34,6 +34,16 @@
     <!-- Phase 3: input injection (signature, held by the platform-signed app) and the voice session. -->
     <uses-permission android:name="android.permission.INJECT_EVENTS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- First-run setup. buddy replaces the setup wizard (dropped from the build in
+         Android.bp), so it does the wizard's work inside its own walk-through: join a
+         network, set the first lock credential, and tell the framework setup is done.
+         All signature or signature|privileged, held by the platform-signed app. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.NETWORK_SETUP_WIZARD" />
+    <uses-permission android:name="android.permission.ACCESS_KEYGUARD_SECURE_STORAGE" />
+    <uses-permission android:name="android.permission.SET_INITIAL_LOCK" />
 
     <application
         android:name="buddy.android.BuddyApp"

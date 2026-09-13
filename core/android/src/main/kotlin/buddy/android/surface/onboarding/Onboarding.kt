@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
@@ -50,6 +51,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import buddy.android.surface.creature.Creature
 import buddy.android.surface.creature.Mood
+import buddy.android.surface.setup.LockCredential
+import buddy.android.surface.setup.LockResult
+import buddy.android.surface.setup.SetupController
+import buddy.android.surface.setup.WifiState
 import buddy.android.surface.theme.LocalPalette
 import buddy.android.surface.theme.Type
 
@@ -58,30 +63,87 @@ import buddy.android.surface.theme.Type
  * one featured thing to look at. Buddy looks at whatever matters.
  */
 @Composable
-fun Onboarding(onFinished: () -> Unit, startAt: Int = -1) {
-    var phase by rememberSaveable { mutableIntStateOf(if (startAt < 0) 0 else 1) } // 0 = wake, 1 = steps
+fun Onboarding(onFinished: () -> Unit, includeSetup: Boolean = false) {
+    var phase by rememberSaveable { mutableIntStateOf(0) } // 0 = wake, 1 = steps
     if (phase == 0) {
         WakeScreen(onDone = { phase = 1 })
     } else {
-        Steps(onFinished, startAt.coerceAtLeast(0))
+        Steps(onFinished, includeSetup)
     }
 }
 
 @Composable
-private fun Steps(onFinished: () -> Unit, startAt: Int) {
+private fun Steps(onFinished: () -> Unit, includeSetup: Boolean) {
     val p = LocalPalette.current
     val context = LocalContext.current
+    val setup = remember { SetupController(context) }
+    val flow = remember(includeSetup) { steps(includeSetup) }
     LaunchedEffect(Unit) { Bootstrapper.start(context) }
     val people by Bootstrapper.people.collectAsState()
     val bootstrap by Bootstrapper.result.collectAsState()
     val readingDone by Bootstrapper.done.collectAsState()
-    var index by rememberSaveable { mutableIntStateOf(startAt.coerceIn(0, steps.lastIndex)) }
+    val networks by setup.wifi.networks.collectAsState()
+    val wifiState by setup.wifi.state.collectAsState()
+    var index by rememberSaveable { mutableIntStateOf(0) }
     var voiceCount by rememberSaveable { mutableIntStateOf(0) }
     var careful by rememberSaveable { mutableStateOf(true) }
-    val step = steps[index]
+    var pinFirst by rememberSaveable { mutableStateOf("") }
+    var pinEntry by rememberSaveable { mutableStateOf("") }
+    var pinConfirming by rememberSaveable { mutableStateOf(false) }
+    var pinMismatch by rememberSaveable { mutableStateOf(false) }
+    val step = flow[index]
 
     fun next() {
-        if (index < steps.lastIndex) index++ else onFinished()
+        if (index < flow.lastIndex) {
+            index++
+        } else {
+            // Hands the phone over: from here the lock screen comes up and the status bar
+            // appears, because buddy has told the framework setup is done.
+            setup.finish()
+            onFinished()
+        }
+    }
+
+    // The Wi-Fi step scans only while it is on screen, and skips itself when something
+    // already reaches the internet (a SIM, or a reflash onto a configured phone).
+    LaunchedEffect(step.id) {
+        if (step.id == "wifi") {
+            if (setup.wifi.online()) next() else setup.wifi.start()
+        } else {
+            setup.wifi.stop()
+        }
+    }
+    DisposableEffect(Unit) { onDispose { setup.wifi.stop() } }
+
+    // Once the second entry matches, the credential is set for real: the ledger's storage
+    // key is bound to it from this moment.
+    fun pinKey(c: Char) {
+        if (pinEntry.length >= PIN_LENGTH) return
+        pinMismatch = false
+        pinEntry += c
+        if (pinEntry.length < PIN_LENGTH) return
+        when {
+            !pinConfirming -> {
+                pinFirst = pinEntry
+                pinEntry = ""
+                pinConfirming = true
+            }
+            pinEntry == pinFirst -> when (setup.setPin(pinEntry)) {
+                LockResult.SET -> next()
+                // No route to the credential from here, so hand off to the platform's own
+                // chooser rather than pretending the phone is locked.
+                LockResult.UNAVAILABLE -> {
+                    runCatching { context.startActivity(LockCredential.settingsIntent()) }
+                    next()
+                }
+                LockResult.REFUSED -> {
+                    pinEntry = ""; pinFirst = ""; pinConfirming = false; pinMismatch = true
+                }
+            }
+            else -> {
+                pinEntry = ""; pinFirst = ""; pinConfirming = false; pinMismatch = true
+            }
+        }
     }
 
     val ctx = FeatureContext(
@@ -90,8 +152,55 @@ private fun Steps(onFinished: () -> Unit, startAt: Int) {
         quietHours = bootstrap?.let { "%02d:00 – %02d:00".format(it.quietStartHour, it.quietEndHour) } ?: "23:00 – 07:00",
         readingDone = readingDone,
         onReadingDone = { if (step.id == "reading") next() },
+        networks = networks,
+        wifiState = wifiState,
+        onJoin = { ssid, password -> setup.wifi.join(ssid, password) },
+        pin = pinEntry,
+        pinConfirming = pinConfirming,
+        pinMismatch = pinMismatch,
+        onPinKey = { pinKey(it) },
+        onPinDelete = { if (pinEntry.isNotEmpty()) pinEntry = pinEntry.dropLast(1) },
     )
 
+    // Joining lands the user on the next step on its own, the way a wizard would.
+    LaunchedEffect(wifiState) {
+        if (step.id == "wifi" && wifiState is WifiState.Joined) {
+            kotlinx.coroutines.delay(900)
+            next()
+        }
+    }
+
+    StepStage(
+        step = step,
+        ctx = ctx,
+        onPrimary = {
+            if (step.id == "trust") { careful = true; Bootstrapper.applyTrust(context, careful = true) }
+            next()
+        },
+        onSecondary = {
+            if (step.id == "trust") { careful = false; Bootstrapper.applyTrust(context, careful = false) }
+            next()
+        },
+        onCreatureTap = if (step.feature == Feature.Voice) {
+            { voiceCount++; if (voiceCount >= 3) next() }
+        } else null,
+    )
+}
+
+/**
+ * One step on screen: the creature floating where the step puts him, the phrase, and the
+ * one thing to look at. Holds no state of its own, so the same code draws the live flow
+ * and the rendered screens in `core/android-shots`.
+ */
+@Composable
+fun StepStage(
+    step: Step,
+    ctx: FeatureContext,
+    onPrimary: () -> Unit,
+    onSecondary: () -> Unit,
+    onCreatureTap: (() -> Unit)? = null,
+) {
+    val p = LocalPalette.current
     BoxWithConstraints(Modifier.fillMaxSize().background(p.background).statusBarsPadding().navigationBarsPadding()) {
         val stageWidth = maxWidth
         val scale = stageWidth / 390.dp
@@ -121,15 +230,11 @@ private fun Steps(onFinished: () -> Unit, startAt: Int) {
                         verticalArrangement = Arrangement.Center,
                     ) {
                         Spacer(Modifier.height(topSpace))
-                        if (s.feature != null && s.feature != Feature.Voice) {
+                        if (s.feature != null && !s.featureBelow) {
                             FeatureView(s.feature, ctx)
                             Spacer(Modifier.height(14.dp))
                         }
                         BasicText(s.title, style = Type.display.copy(color = p.text, textAlign = TextAlign.Center))
-                        if (s.feature == Feature.Voice) {
-                            Spacer(Modifier.height(14.dp))
-                            FeatureView(s.feature, ctx)
-                        }
                         if (s.body != null) {
                             Spacer(Modifier.height(14.dp))
                             BasicText(
@@ -137,6 +242,10 @@ private fun Steps(onFinished: () -> Unit, startAt: Int) {
                                 style = Type.body.copy(color = p.muted, textAlign = TextAlign.Center),
                                 modifier = Modifier.widthIn(max = 300.dp),
                             )
+                        }
+                        if (s.feature != null && s.featureBelow) {
+                            Spacer(Modifier.height(20.dp))
+                            FeatureView(s.feature, ctx)
                         }
                     }
                 }
@@ -148,9 +257,7 @@ private fun Steps(onFinished: () -> Unit, startAt: Int) {
                         gaze = step.gaze,
                         size = size,
                         glow = step.place.glow,
-                        onTap = if (step.feature == Feature.Voice) {
-                            { voiceCount++; if (voiceCount >= 3) next() }
-                        } else null,
+                        onTap = onCreatureTap,
                     )
                 }
             }
@@ -161,10 +268,7 @@ private fun Steps(onFinished: () -> Unit, startAt: Int) {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (step.primary != null) {
-                    Cta(step.primary) {
-                        if (step.id == "trust") { careful = true; Bootstrapper.applyTrust(context, careful = true) }
-                        next()
-                    }
+                    Cta(step.primary, onClick = onPrimary)
                 } else {
                     Spacer(Modifier.height(52.dp))
                 }
@@ -174,10 +278,7 @@ private fun Steps(onFinished: () -> Unit, startAt: Int) {
                         style = Type.body.copy(color = p.muted),
                         modifier = Modifier
                             .height(44.dp)
-                            .clickable(remember { MutableInteractionSource() }, indication = null) {
-                                if (step.id == "trust") { careful = false; Bootstrapper.applyTrust(context, careful = false) }
-                                next()
-                            }
+                            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onSecondary)
                             .padding(top = 12.dp),
                     )
                 }

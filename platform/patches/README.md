@@ -26,6 +26,7 @@ changes in Phase 0 is small.
 | 0011 | Microphone indicator behaviour | patch | `frameworks/base` |
 | 0012 | Per-subsystem SELinux domains | patch, Phase 4 | `system/sepolicy`, `sepolicy/draft` |
 | 0013 | Remove viewer chrome: the launcher (no patch, Soong `overrides`), quick settings and recents in SystemUI | partly no patch, partly patch | `Android.bp`, `frameworks/base/packages/SystemUI` |
+| 0014 | Replace the setup wizard with buddy's wake-up | **no patch**: Soong `overrides` plus buddy setting `device_provisioned` itself | `Android.bp`, app |
 
 ## 0007: board config hook
 
@@ -116,3 +117,35 @@ recents overview in SystemUI assume someone is looking; a patch disables the rec
 gesture and reduces quick settings to the connectivity and torch tiles buddy cannot
 manage on the user's behalf. The status bar stays for the clock and battery. Verify by
 booting: home shows the timeline, swipe-up does nothing, quick settings has two tiles.
+
+## 0014: replace the setup wizard
+
+The first thing a new phone shows should be buddy waking up, not a language picker. The
+wizard package is dropped from the build with Soong `overrides` on the Buddy module, the
+same mechanism that drops the launcher, so buddy's `HOME` filter is the only candidate
+at first boot and the framework starts it directly.
+
+That makes buddy responsible for what the wizard did. `surface/setup` holds it:
+
+- `Provisioning` reads and writes `device_provisioned` and `user_setup_complete`. Until
+  they are set the framework keeps the keyguard off and hides the status bar and quick
+  settings, which is the blank screen the wake-up wants. buddy sets them at the end of
+  the walk-through, and that is the moment the phone becomes a locked, normal-feeling
+  device.
+- `WifiJoiner` scans and joins from inside the walk-through, using the same privileged
+  path a wizard uses (`NETWORK_SETUP_WIZARD` plus `addNetwork`), so there is no handover
+  to Settings.
+- `LockCredential` sets the first PIN through `LockPatternUtils`, reached over
+  reflection. This is the credential the ledger's storage key is bound to, so it has to
+  happen before anything is written. If the call is unavailable the step falls back to
+  the platform's own chooser rather than leaving the phone unlocked and silent about it.
+
+The two extra steps only appear when `device_provisioned` is 0, so a reflash onto a
+configured phone does not ask for the Wi-Fi password and a new PIN again.
+
+Verify on a freshly flashed phone: the first frame after boot is buddy's wake-up with no
+status bar; the Wi-Fi step lists real networks and joining one sticks across a reboot;
+the PIN set in the flow unlocks the phone afterwards and `settings get global
+device_provisioned` reads 1. VERIFY before this builds: the GrapheneOS wizard's Soong
+module name, and that `LockPatternUtils.setLockCredential` still has this signature at
+the pinned tag.

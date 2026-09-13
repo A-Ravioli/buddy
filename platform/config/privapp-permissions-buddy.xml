@@ -17,5 +17,10 @@
         <permission name="android.permission.START_FOREGROUND_SERVICES_FROM_BACKGROUND" />
         <!-- Phase 3: actuation through input injection. -->
         <permission name="android.permission.INJECT_EVENTS" />
+        <!-- First-run setup: buddy replaces the setup wizard and marks the device
+             provisioned when the walk-through ends. The rest of what setup needs
+             (NETWORK_SETUP_WIZARD, SET_INITIAL_LOCK, ACCESS_KEYGUARD_SECURE_STORAGE)
+             is signature-level, so the platform signature grants it without an entry. -->
+        <permission name="android.permission.WRITE_SECURE_SETTINGS" />
     </privapp-permissions>
 </permissions>

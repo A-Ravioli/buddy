@@ -20,6 +20,7 @@ import buddy.android.surface.home.HomeScreen
 import buddy.android.surface.home.PlaygroundScreen
 import buddy.android.surface.home.TimelineScreen
 import buddy.android.surface.onboarding.Onboarding
+import buddy.android.surface.setup.Provisioning
 import buddy.android.surface.theme.BuddyTheme
 import buddy.android.surface.theme.Palettes
 import buddy.android.ui.TimelineActivity
@@ -43,12 +44,18 @@ class SurfaceActivity : ComponentActivity() {
             var onboarded by remember { mutableStateOf(prefs.onboarded) }
             if (!onboarded) {
                 // The first run is black and white whatever the scheme; colour comes after.
+                // On a phone that has never been set up buddy is also the setup wizard, so
+                // the walk-through carries the Wi-Fi and lock steps (see SetupController).
+                val needsSetup = remember { Provisioning.needsSetup(this) }
                 BuddyTheme(Palettes.mono) {
-                    Onboarding(onFinished = {
-                        prefs.onboarded = true
-                        onboarded = true
-                        SurfaceStore.refresh()
-                    })
+                    Onboarding(
+                        onFinished = {
+                            prefs.onboarded = true
+                            onboarded = true
+                            SurfaceStore.refresh()
+                        },
+                        includeSetup = needsSetup,
+                    )
                 }
             } else {
                 BuddyTheme(Palettes.of(prefs.scheme, prefs.accentIndex)) { Surface() }

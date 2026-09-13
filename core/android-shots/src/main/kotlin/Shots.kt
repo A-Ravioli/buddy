@@ -17,7 +17,12 @@ import buddy.android.surface.home.SuggestedReply
 import buddy.android.surface.home.SurfaceState
 import buddy.android.surface.home.TimelineEntry
 import buddy.android.surface.home.TimelineScreen
+import buddy.android.surface.onboarding.FeatureContext
 import buddy.android.surface.onboarding.Onboarding
+import buddy.android.surface.onboarding.StepStage
+import buddy.android.surface.onboarding.steps
+import buddy.android.surface.setup.Network
+import buddy.android.surface.setup.WifiState
 import buddy.android.surface.theme.BuddyTheme
 import buddy.android.surface.theme.Palette
 import buddy.android.surface.theme.Palettes
@@ -102,7 +107,45 @@ fun main(args: Array<String>) {
         }
         scene.close()
     }
-    for ((i, name) in listOf(0 to "hi", 3 to "old-phone", 4 to "people", 9 to "voice", 11 to "trust", 12 to "quiet-hours", 15 to "undo", 17 to "pocket")) {
-        shot("2${i.toString().padStart(2, '0')}-onboarding-$name", Palettes.mono, frames = 6) { Onboarding(onFinished = {}, startAt = i) }
+    // The walk-through, drawn a step at a time through the same StepStage the live flow
+    // uses, with sample state where the step would read the phone.
+    val flow = steps(includeSetup = true)
+    val nearby = listOf(
+        Network("Pantry", secured = true, level = -46),
+        Network("Pantry 5G", secured = true, level = -58),
+        Network("BT-KQ7R9M", secured = true, level = -67),
+        Network("The Larch", secured = true, level = -71),
+        Network("virginmedia-guest", secured = false, level = -79),
+    )
+    fun sample(
+        voiceCount: Int = 0,
+        networks: List<Network> = emptyList(),
+        wifiState: WifiState = WifiState.Off,
+        pin: String = "",
+        pinConfirming: Boolean = false,
+    ) = FeatureContext(
+        voiceCount = voiceCount,
+        people = 412,
+        quietHours = "23:00 – 07:00",
+        readingDone = false,
+        onReadingDone = {},
+        networks = networks,
+        wifiState = wifiState,
+        pin = pin,
+        pinConfirming = pinConfirming,
+    )
+    fun step(name: String, id: String, ctx: FeatureContext = sample()) {
+        val s = flow.first { it.id == id }
+        shot(name, Palettes.mono, frames = 6) { StepStage(s, ctx, onPrimary = {}, onSecondary = {}) }
     }
+    step("200-onboarding-hi", "hi")
+    step("203-onboarding-wifi", "wifi", sample(networks = nearby, wifiState = WifiState.Scanning))
+    step("204-onboarding-pin", "pin", sample(pin = "123", pinConfirming = true))
+    step("205-onboarding-old-phone", "old")
+    step("206-onboarding-people", "people")
+    step("209-onboarding-voice", "voice", sample(voiceCount = 1))
+    step("211-onboarding-trust", "trust")
+    step("212-onboarding-quiet-hours", "quiet")
+    step("215-onboarding-undo", "wrong")
+    step("217-onboarding-pocket", "pocket")
 }

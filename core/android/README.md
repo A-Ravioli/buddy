@@ -5,6 +5,11 @@ types in `core/perception`, the ledger opened in credential-encrypted storage, t
 cognition and actuation wiring, and the surface: the chat with buddy, the creature,
 the timeline, and the first-run walk-through. The surface is the home screen.
 
+buddy is also the setup wizard: the wizard package is dropped from the build in
+`Android.bp`, so the first thing a new phone shows is the wake-up. The Wi-Fi and lock
+steps appear in the walk-through only while `device_provisioned` is 0. See patch 0014 in
+`platform/patches/README.md`.
+
 It is **not a Gradle module**. It uses system and platform APIs (the content capture
 service, the voice interaction services) that the public Android SDK does not expose,
 so it is built by Soong from the `Android.bp` at the repository root when this
@@ -39,7 +44,8 @@ snapshot types and a call to `Ingest.submit`.
 | `surface/SurfaceActivity.kt` | The home. First run: the wake-up and the walk-through. After: the chat. Hold the creature to talk |
 | `surface/SurfaceStore.kt` | Builds what the screen shows from the ledger and the last plan; sends decisions to the executor |
 | `surface/creature/` | buddy: a circle and two strokes, eight moods, five gazes, animated between states |
-| `surface/onboarding/` | The wake sequence, eighteen one-phrase steps, and the bootstrap that infers the profile while they run |
+| `surface/onboarding/` | The wake sequence, the one-phrase steps, and the bootstrap that infers the profile while they run |
+| `surface/setup/` | What a setup wizard would do, since buddy replaces it: joining Wi-Fi, setting the first lock credential, and marking the device provisioned |
 | `surface/home/` | Cards for decisions, replies, holds, recalls, handled counts and receipts; the quiet state; the timeline; the playground |
 | `surface/theme/` | Three schemes (colour, black and white, green), one colour per domain, the two bundled typefaces (OFL) |
 | `voice/VoiceServices.kt` | Voice interaction role holders, no behaviour yet |

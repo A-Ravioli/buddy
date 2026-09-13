@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import buddy.android.surface.setup.Network
+import buddy.android.surface.setup.WifiState
 import buddy.android.surface.theme.LocalPalette
 import buddy.android.surface.theme.Type
 
@@ -46,6 +48,15 @@ data class FeatureContext(
     val quietHours: String,
     val readingDone: Boolean,
     val onReadingDone: () -> Unit,
+    // First-run setup. Only the two setup steps read these.
+    val networks: List<Network> = emptyList(),
+    val wifiState: WifiState = WifiState.Off,
+    val onJoin: (ssid: String, password: String?) -> Unit = { _, _ -> },
+    val pin: String = "",
+    val pinConfirming: Boolean = false,
+    val pinMismatch: Boolean = false,
+    val onPinKey: (Char) -> Unit = {},
+    val onPinDelete: () -> Unit = {},
 )
 
 /** The one thing a step shows, kept small so the phrase stays the point. */
@@ -54,6 +65,9 @@ fun FeatureView(feature: Feature, ctx: FeatureContext) {
     val p = LocalPalette.current
     val voiceCount = ctx.voiceCount
     when (feature) {
+        Feature.Wifi -> WifiPicker(ctx.networks, ctx.wifiState, ctx.onJoin)
+        Feature.Pin -> PinPad(ctx.pin, ctx.pinConfirming, ctx.pinMismatch, ctx.onPinKey, ctx.onPinDelete)
+
         Feature.OldPhone -> Box(
             Modifier
                 .padding(start = 140.dp)

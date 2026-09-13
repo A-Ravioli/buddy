@@ -175,11 +175,18 @@ android_app {
         "kotlinx_coroutines_android",
     ],
     kotlin_plugins: ["androidx.compose.compiler_compiler-hosted-plugin"],
-    // Phase 4: buddy is the only home. The stock launcher is dropped from the build so
-    // there is no app grid to fall back to. VERIFY the module names at the pinned tag.
+    // buddy is the only home, and the only thing that runs at first boot. The stock
+    // launcher is dropped so there is no app grid to fall back to, and the setup wizard
+    // is dropped so the first thing a new phone shows is buddy waking up rather than
+    // someone else's language-and-wifi flow. buddy does the wizard's work itself (see
+    // surface/setup) and sets device_provisioned when the walk-through ends.
+    // VERIFY the module names at the pinned tag: Provision is AOSP's, and the GrapheneOS
+    // tree carries its own wizard whose module name must be confirmed before this builds.
     overrides: [
         "Launcher3",
         "Launcher3QuickStep",
+        "Provision",
+        "SetupWizard",
     ],
     // System APIs (ContentCaptureService) and, later, hidden ones. platform_apis
     // compiles against the framework itself.
