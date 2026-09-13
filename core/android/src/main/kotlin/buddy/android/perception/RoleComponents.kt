@@ -7,10 +7,13 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import android.telecom.Call
+import android.telecom.CallAudioState
 import android.telecom.CallScreeningService
 import android.telecom.InCallService
 import android.util.Log
 import buddy.android.BuddyApp
+import buddy.android.surface.call.CallActivity
+import buddy.android.surface.call.CallStore
 import buddy.ledger.Event
 import buddy.ledger.EventId
 import buddy.ledger.EventKind
@@ -83,20 +86,44 @@ class HeadlessSmsSendService : IntentService("buddy-sms-send") {
     }
 }
 
-/** Dialer role. Records call lifecycle into the ledger; the in-call UI comes later. */
+/**
+ * Dialer role. Records the call lifecycle into the ledger and puts buddy's call screen on
+ * the display, since nothing else on this build can: the phone app is not installed and
+ * buddy's is the only `IN_CALL_SERVICE_UI`.
+ */
 class BuddyInCallService : InCallService() {
     private val callback = object : Call.Callback() {
-        override fun onStateChanged(call: Call, state: Int) = record(call, state)
+        override fun onStateChanged(call: Call, state: Int) {
+            record(call, state)
+            CallStore.publish(call)
+        }
+    }
+
+    override fun onCallAudioStateChanged(audioState: CallAudioState) {
+        CallStore.onAudioState(audioState)
     }
 
     override fun onCallAdded(call: Call) {
         call.registerCallback(callback)
         record(call, call.details.state)
+        CallStore.attach(this)
+        CallStore.onCall(call)
+        // The in-call UI may start an activity from the background; that is what the role
+        // is for. VERIFY at the pinned tag that this still holds for a call that arrives
+        // while the phone is locked.
+        runCatching {
+            startActivity(
+                Intent(this, CallActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            )
+        }.onFailure { Log.w(BuddyApp.TAG, "could not show the call screen", it) }
     }
 
     override fun onCallRemoved(call: Call) {
         call.unregisterCallback(callback)
         record(call, Call.STATE_DISCONNECTED)
+        CallStore.onCallGone(call)
+        CallStore.detach()
     }
 
     private fun record(call: Call, state: Int) {

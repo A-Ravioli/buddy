@@ -58,6 +58,13 @@ object SurfaceStore {
     /** Text the composer should show, set by "Change it" and "Reply". */
     val prefill = MutableStateFlow("")
 
+    /**
+     * True while the surface is in front of the user. buddy does not chime at someone who
+     * is already looking at him (see [buddy.android.device.Arrival]).
+     */
+    @Volatile
+    var onScreen: Boolean = false
+
     /** A screen the user asked for in words rather than found in a panel. */
     enum class Ask { NETWORK }
 

@@ -78,9 +78,11 @@ dependencies {
     // The Compose compiler plugin runs over the test sources too and wants the runtime on
     // the compile classpath, even though no test composes anything.
     testCompileOnly(libs.compose.runtime.desktop)
-    // The framework jar is Maven Central's, so it can join the test runtime without
-    // reaching Google's Maven. LockFaceTest loads a class whose signatures mention
-    // android.net.Uri; nothing calls into the framework.
+    // The framework jar is Maven Central's, so the tests can have it at both ends without
+    // reaching Google's Maven: the tests name framework constants (telecom's call states),
+    // and the classes they load mention framework types in their signatures. Nothing calls
+    // into the framework itself, which would throw "Stub!".
+    testCompileOnly(libs.robolectric.android.all)
     testRuntimeOnly(libs.robolectric.android.all)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter)

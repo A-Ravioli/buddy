@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Placing a call from a tel: link, as the dialer role holder (DialActivity). -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -27,6 +29,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- buddy's arrival: a chime and a tap, since no notification of his reaches anyone
+         once the shade is closed (patch 0013). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Phase 1: the cloud planning cycle and its alarms. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -201,8 +206,8 @@
             </intent-filter>
         </activity>
 
-        <!-- Dialer role. Phase 0: an InCallService that records call state and a DIAL
-             activity stub. The in-call UI arrives with the calls playbook. -->
+        <!-- Dialer role. buddy is the only in-call UI on this build: the phone app is not
+             installed, so this service and CallActivity are what answers a call. -->
         <service
             android:name="buddy.android.perception.BuddyInCallService"
             android:exported="true"
@@ -212,6 +217,17 @@
                 <action android:name="android.telecom.InCallService" />
             </intent-filter>
         </service>
+        <!-- The call itself. Over the lock screen, because a ringing phone is the one
+             thing allowed to interrupt without asking, and out of recents, which is gone. -->
+        <activity
+            android:name="buddy.android.surface.call.CallActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Buddy.Surface" />
         <activity
             android:name="buddy.android.ui.DialActivity"
             android:exported="true">

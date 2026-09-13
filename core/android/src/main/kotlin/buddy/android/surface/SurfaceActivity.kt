@@ -67,7 +67,13 @@ class SurfaceActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        SurfaceStore.onScreen = true
         SurfaceStore.refresh()
+    }
+
+    override fun onPause() {
+        SurfaceStore.onScreen = false
+        super.onPause()
     }
 
     override fun onDestroy() {
