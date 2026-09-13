@@ -27,7 +27,7 @@ changes in Phase 0 is small.
 | 0012 | Per-subsystem SELinux domains | patch, Phase 4 | `system/sepolicy`, `sepolicy/draft` |
 | 0013 | Remove viewer chrome: the launcher, recents, the shade and quick settings | **no patch**: Soong `overrides`, a SystemUI resource overlay, and a disable flag from the app | `Android.bp`, `overlay/`, app |
 | 0014 | Replace the setup wizard with buddy's wake-up | **no patch**: Soong `overrides` plus buddy setting `device_provisioned` itself | `Android.bp`, app |
-| 0015 | The lock screen is buddy's face and nothing else | partly no patch (secure settings), partly patch (the keyguard's content) | app, `frameworks/base/packages/SystemUI` |
+| 0015 | The lock screen is buddy's face and nothing else | partly no patch (secure settings), partly a tree edit by `0015-lockscreen/apply.sh` | app, `frameworks/base/packages/SystemUI` |
 
 ## 0007: board config hook
 
@@ -205,10 +205,21 @@ notification section with a single full-screen `BuddyFaceView`. The always-on di
 shares that root, so the same view serves both; it takes `lowPower = true` there, which
 drops the breathing and blinks rarely.
 
-**The files to vendor.** `BuddyFaceView`, `LockFace`, `FacePainter`, `FaceGeometry` and
-`CreatureState` from `core/android/src/main/kotlin/buddy/android/surface/`, copied into
-SystemUI. They use only `android.graphics`, the settings provider and plain Kotlin, so
-they compile there unchanged. They are compiled and unit-tested in this repo
+**Applying it.** `patches/0015-lockscreen/apply.sh`, and it is a script rather than a
+`.patch` on purpose: the lockscreen root has been three different classes across three
+releases, so a diff written away from the tree would not apply to the tree. The script
+finds what is actually there, prints it, and writes nothing until it is run with
+`--write`. What it cannot do for you is the Kotlin side — whatever binds the clock, the
+smartspace and the notification section — and it prints the searches that find those.
+
+**The files to vendor.** `scripts/vendor-face.sh` copies `BuddyFaceView`, `LockFace`,
+`FacePainter`, `FaceGeometry` and `CreatureState` from
+`core/android/src/main/kotlin/buddy/android/surface/` into
+`SystemUI/src/com/android/systemui/buddy/`, rewriting the package as it goes. They use
+only `android.graphics`, the settings provider and plain Kotlin, so they compile there
+unchanged. The copy is generated and never edited in the tree: `scripts/build.sh`
+refreshes it on every build once the patch is applied, and `vendor-face.sh --check` fails
+if it has drifted. The originals are compiled and unit-tested in this repo
 (`core/android-verify`), which is why the copy is safe: `FaceGeometry` is the single
 definition of where the strokes go, and `FaceGeometryTest` and `LockFaceTest` pin the
 rules the two sides share.
@@ -241,7 +252,6 @@ face up and the always-on display shows the same face, blinking; let something e
 and the eyes lift without a word of the message appearing; set quiet hours and the eyes
 close. Swipe up and the PIN pad is the stock bouncer, unchanged.
 
-VERIFY before writing it: the lockscreen root's class and package at the pinned tag. This
-area has churned across releases (`KeyguardStatusView`, then `KeyguardRootView`, then the
-scene-based lockscreen), so the patch has to be written against the tree rather than from
-this description.
+VERIFY on the build host, which is what `apply.sh` is for: the lockscreen root's class and
+package at the pinned tag, and whether SystemUI's `Android.bp` picks up the vendored
+directory or has to list it.

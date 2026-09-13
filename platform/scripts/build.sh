@@ -46,6 +46,12 @@ else
     log "WARNING: no boot animation; the image will show the base one"
 fi
 
+# The face SystemUI draws is a generated copy of the app's (patch 0015). If the patch has
+# been applied to this tree, refresh the copy so it cannot lag behind the original.
+if [[ -d frameworks/base/packages/SystemUI/src/com/android/systemui/buddy ]]; then
+    "$BUDDY_SRC/platform/scripts/vendor-face.sh"
+fi
+
 log "platform build: buddy_${BUDDY_DEVICE}-cur-user, BUILD_NUMBER=$BUILD_NUMBER"
 # shellcheck disable=SC1091
 source build/envsetup.sh
