@@ -1,18 +1,15 @@
 package buddy.android.cognition
 
 import android.app.AlarmManager
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import app.buddy.R
 import buddy.android.BuddyApp
+import buddy.android.device.Arrival
 import buddy.android.ledger.LedgerHolder
-import buddy.android.ui.BriefActivity
+import buddy.android.surface.SurfaceStore
 import buddy.cognition.Planned
 import buddy.cognition.TriageRecorder
 import buddy.ledger.EventKind
@@ -24,18 +21,21 @@ import kotlin.concurrent.thread
 /**
  * Runs the planning cycles: morning and evening by default. Each cycle takes the
  * events since the last brief, their recorded triage decisions, and asks the planner.
- * The brief is posted as one notification and kept as a BRIEF event for the screen.
+ * The brief is kept as a BRIEF event for the screen, and buddy announces it himself.
  */
 object BriefScheduler {
     const val ACTION_CYCLE = "app.buddy.action.BRIEF_CYCLE"
     const val ACTION_HOLDS = "app.buddy.action.RELEASE_HOLDS"
     const val EXTRA_CYCLE = "cycle"
-    private const val CHANNEL = "brief"
-    private const val NOTIFICATION_ID = 2
+
+    /** Held so a cycle fired by an alarm can announce itself; set in [schedule]. */
+    @Volatile
+    private var app: Context? = null
 
     private val cycles = listOf("morning" to LocalTime.of(7, 30), "evening" to LocalTime.of(19, 30))
 
     fun schedule(context: Context) {
+        app = context.applicationContext
         val am = context.getSystemService(AlarmManager::class.java)
         val zone = ZoneId.systemDefault()
         val now = ZonedDateTime.now(zone)
@@ -62,7 +62,8 @@ object BriefScheduler {
                 Log.e(BuddyApp.TAG, "brief cycle failed", t)
                 null
             } ?: return@thread
-            post(context, planned)
+            buddy.android.surface.SurfaceStore.onPlanned(planned)
+            announce(planned)
             onDone?.invoke(planned)
         }
     }
@@ -113,23 +114,19 @@ object BriefScheduler {
         am.setRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 5 * 60_000L, 5 * 60_000L, pi)
     }
 
-    private fun post(context: Context, p: Planned) {
-        val nm = context.getSystemService(NotificationManager::class.java)
-        nm.createNotificationChannel(NotificationChannel(CHANNEL, context.getString(R.string.brief_channel), NotificationManager.IMPORTANCE_DEFAULT))
-        val open = PendingIntent.getActivity(
-            context, 0, Intent(context, BriefActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-        )
-        val needs = p.brief.urgent.size + p.brief.decisions.size
-        val title = if (needs == 0) context.getString(R.string.brief_nothing) else context.resources.getQuantityString(R.plurals.brief_needs_you, needs, needs)
-        val n = Notification.Builder(context, CHANNEL)
-            .setSmallIcon(android.R.drawable.ic_menu_agenda)
-            .setContentTitle(title)
-            .setContentText(p.brief.spoken.take(200))
-            .setStyle(Notification.BigTextStyle().bigText(p.brief.spoken))
-            .setContentIntent(open)
-            .setAutoCancel(true)
-            .build()
-        nm.notify(NOTIFICATION_ID, n)
+    /**
+     * The brief arriving. This used to be a notification, which on this build reaches
+     * nobody: the shade does not open, the status bar carries no icons of buddy's, and
+     * the lock screen shows his face rather than a list (patches 0013 and 0015). The
+     * face lifting its eyes is the message — [SurfaceStore] has already published that
+     * by the time this runs — and the chime is what makes someone look at it.
+     */
+    private fun announce(p: Planned) {
+        val context = app ?: return
+        val urgent = p.brief.urgent.isNotEmpty()
+        val hour = ZonedDateTime.now(ZoneId.systemDefault()).hour
+        val quiet = Brain.policyProfile.limits.inQuietHours(hour)
+        Arrival.announce(context, Arrival.decide(urgent, quiet, onScreen = SurfaceStore.onScreen))
     }
 
     class CycleReceiver : BroadcastReceiver() {

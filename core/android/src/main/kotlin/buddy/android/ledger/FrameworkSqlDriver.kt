@@ -36,7 +36,9 @@ class FrameworkSqlDriver(private val db: SQLiteDatabase) : SqlDriver {
             bind(query, args)
             android.database.sqlite.SQLiteCursor(driver, editTable, query)
         }
-        db.rawQueryWithFactory(factory, sql, null, null).use { c ->
+        // The edit-table name is declared non-null in the framework; an empty name means
+        // the cursor is not updatable, which is what a null meant.
+        db.rawQueryWithFactory(factory, sql, null, "").use { c ->
             val out = ArrayList<T>(c.count)
             val row = CursorRow(c)
             while (c.moveToNext()) out.add(map(row))

@@ -158,12 +158,35 @@ android_app {
         "buddy-logistics",
         "buddy-voice",
         "buddy-profile",
+        // The surface (core/android/.../surface) is Jetpack Compose, from the androidx
+        // prebuilts in the platform tree (prebuilts/sdk/current/androidx), the same way
+        // SystemUI builds its Compose features. VERIFY the module names at the pinned tag.
+        "androidx.compose.runtime_runtime",
+        "androidx.compose.foundation_foundation",
+        "androidx.compose.foundation_foundation-layout",
+        "androidx.compose.ui_ui",
+        "androidx.compose.ui_ui-graphics",
+        "androidx.compose.ui_ui-text",
+        "androidx.compose.ui_ui-unit",
+        "androidx.compose.animation_animation",
+        "androidx.compose.animation_animation-core",
+        "androidx.activity_activity-compose",
+        "kotlinx_coroutines",
+        "kotlinx_coroutines_android",
     ],
-    // Phase 4: buddy is the only home. The stock launcher is dropped from the build so
-    // there is no app grid to fall back to. VERIFY the module names at the pinned tag.
+    kotlin_plugins: ["androidx.compose.compiler_compiler-hosted-plugin"],
+    // buddy is the only home, and the only thing that runs at first boot. The stock
+    // launcher is dropped so there is no app grid to fall back to, and the setup wizard
+    // is dropped so the first thing a new phone shows is buddy waking up rather than
+    // someone else's language-and-wifi flow. buddy does the wizard's work itself (see
+    // surface/setup) and sets device_provisioned when the walk-through ends.
+    // VERIFY the module names at the pinned tag: Provision is AOSP's, and the GrapheneOS
+    // tree carries its own wizard whose module name must be confirmed before this builds.
     overrides: [
         "Launcher3",
         "Launcher3QuickStep",
+        "Provision",
+        "SetupWizard",
     ],
     // System APIs (ContentCaptureService) and, later, hidden ones. platform_apis
     // compiles against the framework itself.

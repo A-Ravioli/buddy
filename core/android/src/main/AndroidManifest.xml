@@ -17,8 +17,12 @@
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <!-- Placing a call from a tel: link, as the dialer role holder (DialActivity). -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <!-- Moving in: showing the user which accounts the phone already has. -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
@@ -27,6 +31,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- buddy's arrival: a chime and a tap, since no notification of his reaches anyone
+         once the shade is closed (patch 0013). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The flat ground behind everything, set once at the end of the walk-through. -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <!-- Phase 1: the cloud planning cycle and its alarms. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
@@ -34,6 +43,20 @@
     <!-- Phase 3: input injection (signature, held by the platform-signed app) and the voice session. -->
     <uses-permission android:name="android.permission.INJECT_EVENTS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- First-run setup. buddy replaces the setup wizard (dropped from the build in
+         Android.bp), so it does the wizard's work inside its own walk-through: join a
+         network, set the first lock credential, and tell the framework setup is done.
+         All signature or signature|privileged, held by the platform-signed app. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.NETWORK_SETUP_WIZARD" />
+    <uses-permission android:name="android.permission.ACCESS_KEYGUARD_SECURE_STORAGE" />
+    <uses-permission android:name="android.permission.SET_INITIAL_LOCK" />
+    <!-- Patch 0013: turning off the chrome that assumes a viewer. WRITE_SECURE_SETTINGS,
+         above, also carries the lock screen's settings (patch 0015) and the two keys buddy
+         publishes his face's state through, which SystemUI reads. -->
+    <uses-permission android:name="android.permission.STATUS_BAR" />
 
     <application
         android:name="buddy.android.BuddyApp"
@@ -43,14 +66,16 @@
         android:allowBackup="false"
         android:theme="@android:style/Theme.DeviceDefault.DayNight">
 
-        <!-- The debug timeline. It is also the HOME activity: in Phase 0 the launcher is a
-             blank list of what buddy has seen. -->
+        <!-- The surface: the chat with buddy, the creature, the timeline, the first-run
+             walk-through. It is the HOME activity; there is no launcher grid behind it. -->
         <activity
-            android:name="buddy.android.ui.TimelineActivity"
+            android:name="buddy.android.surface.SurfaceActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:stateNotNeeded="true"
-            android:excludeFromRecents="true">
+            android:excludeFromRecents="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Buddy.Surface">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -63,6 +88,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- The debug timeline: every raw event in the ledger, one line each. Reached from
+             the surface's playground; no longer the home. -->
+        <activity
+            android:name="buddy.android.ui.TimelineActivity"
+            android:exported="false" />
 
         <!-- Perception host: keeps the content observers, location, and device-state
              receivers alive. Persistent app, so this survives without a user-visible
@@ -179,8 +210,8 @@
             </intent-filter>
         </activity>
 
-        <!-- Dialer role. Phase 0: an InCallService that records call state and a DIAL
-             activity stub. The in-call UI arrives with the calls playbook. -->
+        <!-- Dialer role. buddy is the only in-call UI on this build: the phone app is not
+             installed, so this service and CallActivity are what answers a call. -->
         <service
             android:name="buddy.android.perception.BuddyInCallService"
             android:exported="true"
@@ -190,6 +221,17 @@
                 <action android:name="android.telecom.InCallService" />
             </intent-filter>
         </service>
+        <!-- The call itself. Over the lock screen, because a ringing phone is the one
+             thing allowed to interrupt without asking, and out of recents, which is gone. -->
+        <activity
+            android:name="buddy.android.surface.call.CallActivity"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Buddy.Surface" />
         <activity
             android:name="buddy.android.ui.DialActivity"
             android:exported="true">

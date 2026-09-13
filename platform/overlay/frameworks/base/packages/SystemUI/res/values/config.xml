@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SystemUI configuration overlay (patch 0013).
+
+  Quick settings keeps only what buddy cannot do on the user's behalf. Everything else on
+  the default panel is either something buddy manages (do not disturb, alarms, battery
+  saver, casting) or something that assumes a viewer. The internet toggle and the torch
+  are the two a person still reaches for on a phone that is otherwise face down.
+
+  This is the default list. A phone that has been used has its own list in
+  Settings.Secure, which takes precedence, so buddy writes the same pair there at boot
+  (see surface/lockscreen/SystemChrome.kt).
+
+  As with the framework overlay, a resource name that has drifted at the pinned tag fails
+  the build rather than silently doing nothing, which is what we want.
+-->
+<resources>
+    <string name="quick_settings_tiles_default" translatable="false">internet,flashlight</string>
+</resources>

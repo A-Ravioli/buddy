@@ -22,7 +22,11 @@ class RecipeConnector(private val runner: RecipeRunnerFacade) : Connector {
     override fun execute(p: Proposal): Outcome {
         val pkg = p.payload["package"] ?: return Outcome(false, "no package in payload")
         val (ok, reason, trace) = runner.run(pkg, p.spec.name, p.payload - "package")
-        return Outcome(ok, "$reason; " + trace.joinToString(" | "))
+        // A recipe that stalls has stalled inside the app, which is where the user would
+        // have to finish it. "No recipe" is not that: buddy never got there, and opening
+        // an app the user did not ask for would be a guess.
+        val stalled = if (!ok && reason != "no recipe" && reason != "missing_param") pkg else null
+        return Outcome(ok, "$reason; " + trace.joinToString(" | "), needsUserIn = stalled)
     }
 
     // A recipe's postcondition is its final Verify step; the runner only reports ok if it held.

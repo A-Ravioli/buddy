@@ -25,6 +25,18 @@ PRODUCT_PACKAGES += \
 # Framework overlay: default roles, content capture service, listener access.
 PRODUCT_PACKAGE_OVERLAYS += vendor/buddy/platform/overlay
 
+# The boot animation: buddy opening his eyes, drawn from the same geometry the app and the
+# lock screen use and packed by :platform:bootanimation. scripts/build.sh writes it into
+# the tree before the platform build; a tree without it falls back to the base animation
+# rather than failing, and says so.
+# VERIFY at the pinned tag: surfaceflinger reads /product/media first, then /system/media.
+BUDDY_BOOTANIMATION := vendor/buddy/platform/bootanimation/build/bootanimation.zip
+ifneq ($(wildcard $(BUDDY_BOOTANIMATION)),)
+PRODUCT_COPY_FILES += $(BUDDY_BOOTANIMATION):$(TARGET_COPY_OUT_PRODUCT)/media/bootanimation.zip
+else
+$(warning buddy: no bootanimation.zip; run ./gradlew :platform:bootanimation:bootAnimation)
+endif
+
 # buddy's own build identity, readable from the app and the timeline.
 PRODUCT_SYSTEM_EXT_PROPERTIES += \
     ro.buddy.build.tag=$(BUDDY_BASE_TAG) \

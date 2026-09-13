@@ -13,7 +13,10 @@ import android.util.Log
 import buddy.actuation.Actions
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.device.Apps
+import buddy.android.device.Torch
 import buddy.android.ledger.LedgerHolder
+import buddy.android.surface.SurfaceStore
 import buddy.ledger.EventKind
 import buddy.policy.PolicyContext
 import buddy.policy.PolicyEngine
@@ -60,7 +63,7 @@ class CommandSession(private val service: VoiceInteractionSessionService) : Voic
             override fun onResults(results: Bundle) {
                 val text = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                 Log.i(BuddyApp.TAG, "heard: $text")
-                say(handle(CommandParser.parse(text)))
+                say(CommandHandler.handle(CommandParser.parse(text)))
                 hide()
             }
             override fun onError(error: Int) { say("Sorry, I didn't catch that."); hide() }
@@ -87,9 +90,26 @@ class CommandSession(private val service: VoiceInteractionSessionService) : Voic
     private fun say(text: String) {
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "buddy")
     }
+}
 
-    /** Commands go through policy like any other action; nothing here bypasses it. */
-    private fun handle(c: Command): String {
+/**
+ * What a command does. Shared by the voice session and the surface, so a held-to-talk
+ * sentence on the screen and a spoken one on the earbuds mean the same thing.
+ * Commands go through policy like any other action; nothing here bypasses it.
+ */
+object CommandHandler {
+    fun handle(c: Command): String {
+        // The switches quick settings used to carry. They work on a locked phone, which
+        // is exactly when someone asks for the torch, so they come before the ledger.
+        when (c) {
+            is Command.Torch -> return torch(c.on)
+            is Command.Network -> {
+                SurfaceStore.ask(SurfaceStore.Ask.NETWORK)
+                return "Networks are on the screen."
+            }
+            is Command.Open -> return open(c.app)
+            else -> Unit
+        }
         val ledger = LedgerHolder.getOrNull() ?: return "The ledger is locked until you unlock the phone."
         return when (c) {
             is Command.Brief -> ledger.recent(50).firstOrNull { it.kind == EventKind.BRIEF }?.text ?: "No brief yet."
@@ -121,7 +141,24 @@ class CommandSession(private val service: VoiceInteractionSessionService) : Voic
                 "Noted."
             }
             is Command.Unknown -> "I didn't understand that."
+            is Command.Torch, is Command.Network, is Command.Open -> "" // answered above
         }
+    }
+
+    /**
+     * The way into an app, now that the launcher is gone. buddy opens it and the user
+     * comes back to him; there is no grid to get lost in.
+     */
+    private fun open(query: String): String {
+        val context = SurfaceStore.appContext ?: return "Not ready yet."
+        val app = Apps.match(query, Apps.launchable(context)) ?: return "I don't have an app called that."
+        return if (Apps.open(context, app.packageName)) "Opening ${app.label}." else "I can't open ${app.label}."
+    }
+
+    private fun torch(on: Boolean?): String {
+        if (!Torch.available) return "This phone has no torch."
+        val lit = if (on == null) Torch.toggle() else Torch.set(on)
+        return if (lit) "Torch on." else "Torch off."
     }
 }
 

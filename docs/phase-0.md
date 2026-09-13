@@ -44,10 +44,10 @@ the phone. Update it as items land.
 
 In order, each unblocking the next:
 
-1. `platform/scripts/setup-host.sh`, then `sync.sh <tag>`. After the sync, check the
-   items the script prints: the `mustang` device directory and product makefile name,
-   the overlay resource names, the Updater config resource name. Fix the two `VERIFY`
-   comments in `platform/product/buddy_mustang.mk`.
+1. `platform/scripts/setup-host.sh`, then `sync.sh <tag>`. Then work down
+   **`docs/build-host.md`**, which collects every `VERIFY` in the tree into one ordered
+   list with the command that settles each: what to read before the first build, what the
+   first build will surface, and what to check on the phone.
 2. `keys.sh`, then back the keys up.
 3. `build.sh`. Expect the first platform build of the app to surface compile errors in
    `core/android`; it was written without a compiler. They should be local (an import,

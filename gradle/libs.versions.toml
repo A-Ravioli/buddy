@@ -6,6 +6,9 @@ anthropic = "2.62.0"
 jackson = "2.18.2"
 jakartaMail = "2.0.1"
 angusMail = "2.0.3"
+compose = "1.7.3"
+robolectricAndroid = "16-robolectric-13921718"
+coroutines = "1.9.0"
 
 [libraries]
 sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbc" }
@@ -16,6 +19,14 @@ anthropic-java = { module = "com.anthropic:anthropic-java", version.ref = "anthr
 jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations", version.ref = "jackson" }
 jakarta-mail-api = { module = "jakarta.mail:jakarta.mail-api", version.ref = "jakartaMail" }
 angus-mail = { module = "org.eclipse.angus:angus-mail", version.ref = "angusMail" }
+# The compile check for the system app (core/android-verify).
+robolectric-android-all = { module = "org.robolectric:android-all", version.ref = "robolectricAndroid" }
+compose-runtime-desktop = { module = "org.jetbrains.compose.runtime:runtime-desktop", version.ref = "compose" }
+compose-foundation-desktop = { module = "org.jetbrains.compose.foundation:foundation-desktop", version.ref = "compose" }
+compose-ui-desktop = { module = "org.jetbrains.compose.ui:ui-desktop", version.ref = "compose" }
+compose-animation-desktop = { module = "org.jetbrains.compose.animation:animation-desktop", version.ref = "compose" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

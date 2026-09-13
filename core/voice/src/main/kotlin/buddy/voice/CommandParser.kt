@@ -23,6 +23,12 @@ sealed class Command {
     data object Resume : Command()
     /** "undo that", "undo" */
     data object Undo : Command()
+    /** "torch on", "turn the flashlight off", "torch". Null is a toggle. */
+    data class Torch(val on: Boolean?) : Command()
+    /** "wifi", "connect to the wifi", "get me online". Quick settings is gone; buddy is it. */
+    data object Network : Command()
+    /** "open Monzo", "show me the camera". The launcher is gone; buddy is the way in. */
+    data class Open(val app: String) : Command()
     /** Standing instructions: "don't reply to my mum for me", "always accept invites from Alex" */
     data class Instruction(val text: String) : Command()
     data class Unknown(val text: String) : Command()
@@ -39,6 +45,11 @@ object CommandParser {
     private val pause = Regex("""^(?:stop listening|pause(?: listening)?|go quiet|stop recording)$""", RegexOption.IGNORE_CASE)
     private val resume = Regex("""^(?:start listening(?: again)?|resume(?: listening)?|listen again)$""", RegexOption.IGNORE_CASE)
     private val undo = Regex("""^undo(?: that| the last one)?$""", RegexOption.IGNORE_CASE)
+    private val torchTrailing = Regex("""^(?:turn|switch|put)?\s*(?:the\s+)?(?:torch|flashlight)(?:\s+(?<state>on|off))?$""", RegexOption.IGNORE_CASE)
+    private val torchLeading = Regex("""^(?:turn|switch|put)\s+(?<state>on|off)\s+(?:the\s+)?(?:torch|flashlight)$""", RegexOption.IGNORE_CASE)
+    private val network = Regex("""^(?:(?:turn on|switch on|connect(?:\s+me)?(?:\s+to)?|join|show me)\s+)?(?:the\s+|a\s+|my\s+)?(?:wi-?fi|network|internet)(?:\s+list|\s+picker)?$""", RegexOption.IGNORE_CASE)
+    private val online = Regex("""^(?:(?:get|put)\s+me\s+|go\s+)?(?:back\s+)?online$""", RegexOption.IGNORE_CASE)
+    private val open = Regex("""^(?:open|launch|start|show me)\s+(?<app>.{2,40})$""", RegexOption.IGNORE_CASE)
     private val instruction = Regex("""^(?:from now on|always|never|don't|do not|stop)\b""", RegexOption.IGNORE_CASE)
 
     fun parse(raw: String): Command {
@@ -47,6 +58,14 @@ object CommandParser {
         pause.matchEntire(text)?.let { return Command.Pause }
         resume.matchEntire(text)?.let { return Command.Resume }
         undo.matchEntire(text)?.let { return Command.Undo }
+        // Before the standing-instruction catch-all, which owns anything starting "stop".
+        torchTrailing.matchEntire(text)?.let { return Command.Torch(state(it.groups["state"]?.value)) }
+        torchLeading.matchEntire(text)?.let { return Command.Torch(state(it.groups["state"]?.value)) }
+        network.matchEntire(text)?.let { return Command.Network }
+        online.matchEntire(text)?.let { return Command.Network }
+        // After the network, so "show me the wifi" is buddy's picker and not a hunt for an
+        // app called wifi, and before the standing instructions, which own "stop".
+        open.matchEntire(text)?.let { return Command.Open(it.groups["app"]!!.value.trim()) }
         brief.find(text)?.let { return Command.Brief }
         tell.matchEntire(text)?.let { m ->
             val person = m.groups["person"]!!.value.trim()
@@ -59,5 +78,12 @@ object CommandParser {
         recall.matchEntire(text)?.let { return Command.Recall(text) }
         if (text.endsWith("?") || raw.trim().endsWith("?")) return Command.Recall(text)
         return Command.Unknown(text)
+    }
+
+    /** "on", "off", or nothing said, which means the other one. */
+    private fun state(word: String?): Boolean? = when (word?.lowercase()) {
+        "on" -> true
+        "off" -> false
+        else -> null
     }
 }

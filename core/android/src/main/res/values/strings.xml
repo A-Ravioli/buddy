@@ -6,7 +6,8 @@
     <string name="perception_channel">buddy perception</string>
     <string name="perception_running">buddy is observing</string>
     <string name="stub_not_yet">Not in this phase yet.</string>
-    <string name="brief_channel">buddy brief</string>
+    <string name="dial_no_number">No number in that link.</string>
+    <string name="dial_failed">I could not place that call.</string>
     <string name="brief_title">buddy brief</string>
     <string name="brief_nothing">Nothing needs you</string>
     <string name="brief_none_yet">No brief yet. Tap below to run one.</string>

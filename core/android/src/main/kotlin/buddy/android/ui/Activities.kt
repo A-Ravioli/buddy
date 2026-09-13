@@ -1,13 +1,21 @@
 package buddy.android.ui
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.telecom.TelecomManager
+import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import android.widget.TextView
 import android.widget.Toast
 import app.buddy.R
+import buddy.android.BuddyApp
 import buddy.android.ledger.LedgerHolder
+import buddy.android.surface.SurfaceActivity
+import buddy.android.surface.SurfaceStore
+import buddy.android.surface.call.CallStore
 import buddy.ledger.Event
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -70,20 +78,43 @@ class TimelineActivity : Activity() {
     }
 }
 
-/** SMS role requirement. Phase 0 does not compose messages. */
+/**
+ * SMS role requirement: something asked buddy to write to someone. There is no compose
+ * window on this build — messages are things you tell buddy to send — so the ask becomes
+ * a sentence in the composer with the recipient already in it, and the surface comes up.
+ */
 class ComposeSmsActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, R.string.stub_not_yet, Toast.LENGTH_SHORT).show()
+        val number = intent?.data?.schemeSpecificPart?.trim()
+        val body = intent?.getStringExtra(Intent.EXTRA_TEXT)?.trim().orEmpty()
+        val who = number?.let { CallStore.nameFor(it) }
+        SurfaceStore.prefill.value = if (who.isNullOrBlank()) body else "tell $who $body".trimEnd()
+        startActivity(Intent(this, SurfaceActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         finish()
     }
 }
 
-/** Dialer role requirement. Phase 0 does not place calls. */
+/**
+ * Dialer role requirement: a `tel:` link, tapped somewhere. buddy places the call rather
+ * than showing a keypad nobody asked for, and [buddy.android.surface.call.CallActivity]
+ * takes the screen from there. Without a number there is nothing to dial, so he says so.
+ */
 class DialActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Toast.makeText(this, R.string.stub_not_yet, Toast.LENGTH_SHORT).show()
+        val number = intent?.data?.schemeSpecificPart?.trim()
+        if (number.isNullOrBlank()) {
+            Toast.makeText(this, R.string.dial_no_number, Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+        val telecom = getSystemService(TelecomManager::class.java)
+        runCatching { telecom.placeCall(Uri.fromParts("tel", number, null), Bundle()) }
+            .onFailure {
+                Log.w(BuddyApp.TAG, "could not place the call", it)
+                Toast.makeText(this, R.string.dial_failed, Toast.LENGTH_SHORT).show()
+            }
         finish()
     }
 }

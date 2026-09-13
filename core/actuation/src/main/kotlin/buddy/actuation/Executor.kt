@@ -14,6 +14,13 @@ data class Outcome(
     val detail: String = "",
     /** Opaque token the connector can undo with, when the action is reversible. */
     val undoToken: String? = null,
+    /**
+     * The package the user has to finish this in, when buddy got as far as the app and
+     * could not finish: a bank asking for a face, a login, a screen that moved. The
+     * surface turns this into a hand-over — buddy opens the app and the user does the one
+     * thing only they can. Null when there is nothing a person could do either.
+     */
+    val needsUserIn: String? = null,
 )
 
 /**
@@ -99,7 +106,15 @@ class Executor(
         } catch (t: Throwable) {
             Outcome(false, "exception: ${t.message}")
         }
-        if (!outcome.ok) return record(p, "failed", reasons, supersedes = supersedes, structured = mapOf("detail" to outcome.detail))
+        if (!outcome.ok) {
+            return record(
+                p, "failed", reasons, supersedes = supersedes,
+                structured = buildMap {
+                    put("detail", outcome.detail)
+                    outcome.needsUserIn?.let { put("needs_you_in", it) }
+                },
+            )
+        }
         val verified = try { connector.verify(p, outcome) } catch (t: Throwable) { false }
         if (!verified) return record(p, "unverified", reasons, supersedes = supersedes, structured = mapOf("detail" to outcome.detail))
         return record(
