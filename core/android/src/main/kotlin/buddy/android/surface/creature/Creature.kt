@@ -140,52 +140,42 @@ fun Creature(
                 drawCircle(color.copy(alpha = 0.5f * (1f - ring)), radius = r, center = centre)
             }
             scale(bodyScale, pivot = centre) {
-                if (body) drawCircle(color, radius = 19f * u, center = centre)
-                translate(left = (dx + eyeDx) * u, top = (dy + eyeDy) * u) {
-                    eye(u, 14.5f, tiltLeft, width, height, blink.value, arc, eyeColor)
-                    eye(u, 25.5f, tiltRight, width, height, blink.value, arc, eyeColor)
-                }
+                if (body) drawCircle(color, radius = FaceGeometry.BODY_RADIUS * u, center = centre)
+                val face = FaceGeometry.of(
+                    EyeSpec(tiltLeft, tiltRight, width, height, dx + eyeDx, dy + eyeDy, arc),
+                )
+                eye(face.left, u, blink.value, eyeColor)
+                eye(face.right, u, blink.value, eyeColor)
             }
         }
     }
 }
 
-private fun DrawScope.eye(
-    u: Float,
-    cx40: Float,
-    tilt: Float,
-    width: Float,
-    height: Float,
-    blink: Float,
-    arc: Float,
-    color: Color,
-) {
-    val cx = cx40 * u
-    val cy = 19f * u
-    val centre = Offset(cx, cy)
-    if (arc < 1f) {
-        rotate(tilt, pivot = centre) {
+private fun DrawScope.eye(eye: Eye, u: Float, blink: Float, color: Color) {
+    val centre = Offset(eye.centreX * u, eye.centreY * u)
+    if (eye.arc < 1f) {
+        rotate(eye.tilt, pivot = centre) {
             scale(scaleX = 1f, scaleY = blink, pivot = centre) {
-                val w = width * u
-                val h = height * u
                 drawRoundRect(
-                    color = color.copy(alpha = color.alpha * (1f - arc)),
-                    topLeft = Offset(cx - w / 2f, cy - h / 2f),
-                    size = Size(w, h),
-                    cornerRadius = CornerRadius(w / 2f, w / 2f),
+                    color = color.copy(alpha = color.alpha * (1f - eye.arc)),
+                    topLeft = Offset(eye.left * u, eye.top * u),
+                    size = Size(eye.width * u, eye.height * u),
+                    cornerRadius = CornerRadius(eye.cornerRadius * u, eye.cornerRadius * u),
                 )
             }
         }
     }
-    if (arc > 0f) {
+    if (eye.arc > 0f) {
+        val cx = eye.centreX * u
+        val cy = eye.centreY * u
         val path = Path().apply {
-            moveTo(cx - 4f * u, cy + 2.5f * u)
-            quadraticBezierTo(cx, cy - 4.5f * u, cx + 4f * u, cy + 2.5f * u)
+            moveTo(cx - FaceGeometry.ARC_HALF_WIDTH * u, cy + FaceGeometry.ARC_END_DY * u)
+            quadraticBezierTo(cx, cy + FaceGeometry.ARC_CONTROL_DY * u, cx + FaceGeometry.ARC_HALF_WIDTH * u, cy + FaceGeometry.ARC_END_DY * u)
         }
         drawPath(
             path,
-            color = color.copy(alpha = color.alpha * arc),
-            style = Stroke(width = 4.5f * u, cap = StrokeCap.Round),
+            color = color.copy(alpha = color.alpha * eye.arc),
+            style = Stroke(width = FaceGeometry.ARC_STROKE * u, cap = StrokeCap.Round),
         )
     }
 }

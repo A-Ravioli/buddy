@@ -5,6 +5,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Density
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import buddy.android.surface.creature.Creature
 import buddy.android.surface.creature.Mood
 import buddy.android.surface.home.Affordance
 import buddy.android.surface.home.BuddySays
@@ -107,6 +115,21 @@ fun main(args: Array<String>) {
         }
         scene.close()
     }
+    // The lock screen (patch 0015): what a locked phone shows once SystemUI hosts
+    // BuddyFaceView. Drawn here with the Compose creature, which reads the same
+    // FaceGeometry the View does, so this is the face the keyguard will draw.
+    for ((name, mood) in listOf(
+        "30-lock-resting" to Mood.RESTING,
+        "31-lock-needs-you" to Mood.NEEDS_YOU,
+        "32-lock-quiet-hours" to Mood.ASLEEP,
+    )) {
+        shot(name, Palettes.mono) {
+            Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+                Creature(mood = mood, size = 168.dp, glow = mood == Mood.NEEDS_YOU)
+            }
+        }
+    }
+
     // The walk-through, drawn a step at a time through the same StepStage the live flow
     // uses, with sample state where the step would read the phone.
     val flow = steps(includeSetup = true)

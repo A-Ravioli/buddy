@@ -33,6 +33,9 @@ class SetupController(context: Context) {
     /** Called once, at the end of the walk-through. */
     fun finish() {
         wifi.stop()
+        // Strip the lock screen back to buddy's face before the keyguard is ever shown:
+        // marking the phone provisioned is what turns the lock screen on.
+        buddy.android.surface.lockscreen.LockscreenPolicy.apply(app)
         if (needed) Provisioning.markProvisioned(app)
     }
 }

@@ -65,10 +65,26 @@ dependencies {
     }
     implementation(libs.anthropic.java)
     implementation(libs.jackson.annotations)
+    // Everything the app compiles against but this module never runs is compileOnly: it
+    // keeps Compose's transitive androidx artifacts off the test runtime classpath, where
+    // they would be resolved from Google's Maven for no benefit. The unit tests only load
+    // the app classes that are free of Android and Compose.
     compileOnly(libs.robolectric.android.all)
-    implementation(libs.compose.runtime.desktop)
-    implementation(libs.compose.foundation.desktop)
-    implementation(libs.compose.ui.desktop)
-    implementation(libs.compose.animation.desktop)
+    compileOnly(libs.compose.runtime.desktop)
+    compileOnly(libs.compose.foundation.desktop)
+    compileOnly(libs.compose.ui.desktop)
+    compileOnly(libs.compose.animation.desktop)
     implementation(libs.kotlinx.coroutines.core)
+    // The Compose compiler plugin runs over the test sources too and wants the runtime on
+    // the compile classpath, even though no test composes anything.
+    testCompileOnly(libs.compose.runtime.desktop)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}
+
+// The app's own unit tests: anything in core/android that is free of Android and Compose,
+// which is where the rules worth pinning live (see FaceGeometryTest).
+tasks.test {
+    useJUnitPlatform()
 }

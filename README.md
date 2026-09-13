@@ -48,7 +48,7 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | `eval/metrics` | The success metrics and the gate report from a ledger. |
 | `wear/` | The Pixel Watch app. Built with the Android SDK on the host. |
 | `core/android` | The buddy system app, including the surface (the chat, the creature, onboarding). Built by Soong inside the GrapheneOS tree. |
-| `core/android-verify` | Compiles the system app on the host against the full framework jar and the Compose API, so CI catches errors in it without the platform tree. |
+| `core/android-verify` | Compiles the system app on the host against the full framework jar and the Compose API, and runs its JVM-testable parts, so CI catches errors in it without the platform tree. |
 | `platform/` | Product config, overlays, permissions, SELinux, patch specs, build scripts. |
 | `Android.bp` | Soong modules for the app and its config, read when this repo is `vendor/buddy`. |
 

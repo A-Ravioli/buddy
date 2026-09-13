@@ -25,8 +25,9 @@ changes in Phase 0 is small.
 | 0010 | Concurrent low-priority ambient mic stream | patch, maybe | `frameworks/av` |
 | 0011 | Microphone indicator behaviour | patch | `frameworks/base` |
 | 0012 | Per-subsystem SELinux domains | patch, Phase 4 | `system/sepolicy`, `sepolicy/draft` |
-| 0013 | Remove viewer chrome: the launcher (no patch, Soong `overrides`), quick settings and recents in SystemUI | partly no patch, partly patch | `Android.bp`, `frameworks/base/packages/SystemUI` |
+| 0013 | Remove viewer chrome: the launcher, recents and quick settings | **no patch**: Soong `overrides`, a SystemUI resource overlay, and a disable flag from the app | `Android.bp`, `overlay/`, app |
 | 0014 | Replace the setup wizard with buddy's wake-up | **no patch**: Soong `overrides` plus buddy setting `device_provisioned` itself | `Android.bp`, app |
+| 0015 | The lock screen is buddy's face and nothing else | partly no patch (secure settings), partly patch (the keyguard's content) | app, `frameworks/base/packages/SystemUI` |
 
 ## 0007: board config hook
 
@@ -111,12 +112,31 @@ review has something to read.
 
 ## 0013: remove viewer chrome
 
-Phase 4. The stock launcher is removed with Soong `overrides` on the Buddy app module,
-so the HOME role has one candidate and there is no app grid. Quick settings and the
-recents overview in SystemUI assume someone is looking; a patch disables the recents
-gesture and reduces quick settings to the connectivity and torch tiles buddy cannot
-manage on the user's behalf. The status bar stays for the clock and battery. Verify by
-booting: home shows the timeline, swipe-up does nothing, quick settings has two tiles.
+Written out, this needed no framework patch at all. Three separate things, three
+mechanisms that already exist:
+
+**The launcher** is dropped from the build with Soong `overrides` on the Buddy app
+module, so the HOME role has one candidate and there is no app grid.
+
+**Recents** comes with it. The overview is the launcher's (`QuickStep`), so once the
+launcher is not in the image there is no recents provider and the gesture resolves to
+nothing. Rather than leave a gesture that half-animates into an empty screen, buddy calls
+`StatusBarManager.disable(DISABLE_RECENT)` at boot, which needs the signature-level
+`STATUS_BAR` permission it already holds. Disable flags are held against the caller's
+token for as long as its process lives, and buddy is a persistent app, so re-applying at
+boot is the whole of it.
+
+**Quick settings** keeps the internet toggle and the torch, the two things buddy cannot
+do on the user's behalf. The default tile list is a SystemUI string resource, so
+`overlay/frameworks/base/packages/SystemUI/res/values/config.xml` replaces it. A phone
+that has been used has its own list in `Settings.Secure`, which wins over the default, so
+buddy writes the same pair there at boot too.
+
+The status bar stays. A clock and a battery figure are not something to manage, and a
+phone that cannot show either is a worse phone, not a calmer one.
+
+Verify by booting: home is buddy, swipe-up does nothing, the quick settings panel has two
+tiles, and `adb shell settings get secure sysui_qs_tiles` reads `internet,flashlight`.
 
 ## 0014: replace the setup wizard
 
@@ -149,3 +169,51 @@ the PIN set in the flow unlocks the phone afterwards and `settings get global
 device_provisioned` reads 1. VERIFY before this builds: the GrapheneOS wizard's Soong
 module name, and that `LockPatternUtils.setLockCredential` still has this signature at
 the pinned tag.
+
+
+## 0015: the lock screen
+
+A locked phone should say one thing: whether anything needs you. Stock keyguard says a
+dozen — clock, date, weather, notification list, camera and wallet shortcuts, media
+controls. On this build notifications feed the agent and the user gets a brief
+(docs/01-architecture.md), so a lock screen listing them is the old phone leaking through.
+
+Most of it needs no patch. `surface/lockscreen/LockscreenPolicy.kt` turns off lock-screen
+notifications, the wallet and controls shortcuts and the QR scanner through secure
+settings, and turns **on** always-on display, because the creature sheet asks for the chin
+to stay lit at whisper brightness and blink, and always-on is that.
+
+What is left needs a patch: the keyguard still draws a clock and a smartspace, and
+nothing in it draws buddy.
+
+**The change.** In SystemUI's lockscreen root, replace the clock, smartspace and
+notification section with a single full-screen `BuddyFaceView`. The always-on display
+shares that root, so the same view serves both; it takes `lowPower = true` there, which
+drops the breathing and blinks rarely.
+
+**The file to vendor.** `BuddyFaceView`, `FacePainter`, `FaceGeometry` and `CreatureState`
+from `core/android/src/main/kotlin/buddy/android/surface/`, copied into SystemUI. They use
+only `android.graphics` and plain Kotlin, so they compile there unchanged. They are
+compiled and unit-tested in this repo (`core/android-verify`), which is why the copy is
+safe: `FaceGeometry` is the single definition of where the strokes go, and
+`FaceGeometryTest` pins the rules the two drawings share.
+
+**The mood.** The lockscreen controller sets it: `ASLEEP` during quiet hours, `NEEDS_YOU`
+when the escalation queue is not empty, `RESTING` otherwise. No count, no preview, no
+sender. The eyes lifting is the notification. Read it from the same policy the surface
+uses rather than inventing a second source.
+
+**What is not touched.** The bouncer and everything behind it: `KeyguardSecurityContainer`,
+`LockPatternUtils`, the credential checking and the lockout policy. This patch changes
+what a locked phone shows, never what unlocks it. A review that finds this patch touching
+the security model has found a mistake.
+
+Verify on a phone: lock it and the screen is buddy's face on black, nothing else; put it
+face up and the always-on display shows the same face, blinking; let something escalate
+and the eyes lift without a word of the message appearing; set quiet hours and the eyes
+close. Swipe up and the PIN pad is the stock bouncer, unchanged.
+
+VERIFY before writing it: the lockscreen root's class and package at the pinned tag. This
+area has churned across releases (`KeyguardStatusView`, then `KeyguardRootView`, then the
+scene-based lockscreen), so the patch has to be written against the tree rather than from
+this description.
