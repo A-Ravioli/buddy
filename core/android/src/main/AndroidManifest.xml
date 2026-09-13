@@ -32,6 +32,8 @@
     <!-- buddy's arrival: a chime and a tap, since no notification of his reaches anyone
          once the shade is closed (patch 0013). -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The flat ground behind everything, set once at the end of the walk-through. -->
+    <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <!-- Phase 1: the cloud planning cycle and its alarms. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />

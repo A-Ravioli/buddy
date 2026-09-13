@@ -47,3 +47,8 @@ include(":core:android-verify")
 // default build does not compile the app twice:
 //   ./gradlew -Pshots :core:android-shots:run --args=/tmp/shots
 if (providers.gradleProperty("shots").isPresent) include(":core:android-shots")
+
+// Draws the boot animation from the same face geometry and packs the zip the image ships.
+// Pure JVM, so it stays in the default build:
+//   ./gradlew :platform:bootanimation:bootAnimation
+include(":platform:bootanimation")

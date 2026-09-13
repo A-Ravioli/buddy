@@ -36,6 +36,8 @@ class SetupController(context: Context) {
         // Strip the lock screen back to buddy's face before the keyguard is ever shown:
         // marking the phone provisioned is what turns the lock screen on.
         buddy.android.surface.lockscreen.LockscreenPolicy.apply(app)
+        // Nothing of the old phone showing through at the edges (see Wallpaper).
+        buddy.android.device.Wallpaper.apply(app)
         if (needed) Provisioning.markProvisioned(app)
     }
 }

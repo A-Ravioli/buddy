@@ -18,6 +18,12 @@ log "running the JVM tests"
 (cd "$BUDDY_SRC" && ./gradlew --quiet :core:ledger:test :core:perception:test)
 [[ $APK_ONLY -eq 1 ]] && exit 0
 
+# ---- 1b. the boot animation --------------------------------------------------------
+# Drawn from the same face geometry as the app, so it cannot drift from the creature it
+# shows. The product makefile copies the zip from vendor/buddy into the image.
+log "drawing the boot animation"
+(cd "$BUDDY_SRC" && ./gradlew --quiet :platform:bootanimation:bootAnimation)
+
 # ---- 2. platform build -------------------------------------------------------------
 cd "$BUDDY_TREE" || die "no tree at $BUDDY_TREE; run sync.sh first"
 [[ -f .buddy-base-tag ]] || die "tree has no .buddy-base-tag; run sync.sh"
@@ -29,6 +35,15 @@ export OFFICIAL_BUILD=false
 if [[ -d vendor/buddy/.git ]]; then
     (cd vendor/buddy && git fetch -q origin && git checkout -q "$(cd "$BUDDY_SRC" && git rev-parse HEAD)") \
         || log "WARNING: could not sync vendor/buddy to this checkout's commit"
+fi
+
+# The animation is generated, so it is not in the commit vendor/buddy was just checked out
+# to. Copy it across; the product makefile picks it up from there.
+if [[ -f "$BUDDY_SRC/platform/bootanimation/build/bootanimation.zip" ]]; then
+    mkdir -p vendor/buddy/platform/bootanimation/build
+    cp "$BUDDY_SRC/platform/bootanimation/build/bootanimation.zip" vendor/buddy/platform/bootanimation/build/
+else
+    log "WARNING: no boot animation; the image will show the base one"
 fi
 
 log "platform build: buddy_${BUDDY_DEVICE}-cur-user, BUILD_NUMBER=$BUILD_NUMBER"
