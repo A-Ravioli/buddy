@@ -103,9 +103,10 @@ fun steps(includeSetup: Boolean = false): List<Step> = buildList {
     if (includeSetup) addAll(setupSteps)
     add(
         Step(
-            "old", "Let's bring your life over.", "Hold your old phone next to me.",
-            gaze = Gaze.RIGHT, place = Place(0.3f, 300.dp, 110.dp), topSpace = 0.dp,
-            feature = Feature.OldPhone, secondary = "Start fresh instead",
+            "old", "Let's bring your life over.",
+            "Two things I can't do for you. The rest I'll work out by reading what's here.",
+            gaze = Gaze.DOWN, place = Place(0.5f, 150.dp, 110.dp), topSpace = 150.dp,
+            feature = Feature.OldPhone, featureBelow = true, secondary = "Start fresh instead",
         ),
     )
     add(
@@ -118,7 +119,7 @@ fun steps(includeSetup: Boolean = false): List<Step> = buildList {
         Step(
             "accounts", "Your accounts.", "Sign in once. I read from here, and only here.",
             gaze = Gaze.DOWN, place = Place.topLeft, topSpace = 80.dp, feature = Feature.Accounts,
-            primary = "Sign in with Google", secondary = "Not now",
+            primary = "Add an account", secondary = "Done",
         ),
     )
     add(

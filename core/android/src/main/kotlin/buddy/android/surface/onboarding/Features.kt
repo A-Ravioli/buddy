@@ -48,6 +48,12 @@ data class FeatureContext(
     val quietHours: String,
     val readingDone: Boolean,
     val onReadingDone: () -> Unit,
+    // What is actually on the phone, read rather than illustrated.
+    val accounts: List<String> = emptyList(),
+    val messaging: List<String> = emptyList(),
+    val appCount: Int = 0,
+    val onAddAccount: () -> Unit = {},
+    val onMoveSim: () -> Unit = {},
     // First-run setup. Only the two setup steps read these.
     val networks: List<Network> = emptyList(),
     val wifiState: WifiState = WifiState.Off,
@@ -68,15 +74,15 @@ fun FeatureView(feature: Feature, ctx: FeatureContext) {
         Feature.Wifi -> WifiPicker(ctx.networks, ctx.wifiState, ctx.onJoin)
         Feature.Pin -> PinPad(ctx.pin, ctx.pinConfirming, ctx.pinMismatch, ctx.onPinKey, ctx.onPinDelete)
 
-        Feature.OldPhone -> Box(
-            Modifier
-                .padding(start = 140.dp)
-                .size(104.dp, 196.dp)
-                .border(2.dp, p.line, RoundedCornerShape(20.dp))
-                .padding(top = 10.dp),
-            contentAlignment = Alignment.TopCenter,
+        // The two things no app can do for anyone. buddy opens the framework's own flow
+        // and waits; everything else about moving in, he does by reading the phone.
+        Feature.OldPhone -> Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth(),
         ) {
-            Box(Modifier.size(84.dp, 160.dp).clip(RoundedCornerShape(12.dp)).background(p.card))
+            SetupButton("Move my number over", filled = true, onClick = ctx.onMoveSim)
+            SetupButton("Sign in to an account", filled = false, onClick = ctx.onAddAccount)
         }
 
         Feature.People -> Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -88,19 +94,34 @@ fun FeatureView(feature: Feature, ctx: FeatureContext) {
             BasicText(if (ctx.people > 3) "+${ctx.people - 3}" else "", style = Type.bodyMuted.copy(color = p.muted))
         }
 
-        Feature.Accounts -> FeatureRows(listOf("Gmail" to "✓", "Google Calendar" to "✓", "Monzo" to "later"))
-        Feature.Messages -> FeatureRows(listOf("WhatsApp" to "✓", "Signal" to "✓", "Messages" to "✓"))
+        Feature.Accounts -> if (ctx.accounts.isEmpty()) {
+            FeatureRows(listOf("No accounts yet" to ""))
+        } else {
+            FeatureRows(ctx.accounts.take(4).map { it to "✓" })
+        }
+
+        Feature.Messages -> if (ctx.messaging.isEmpty()) {
+            FeatureRows(listOf("Messages" to "✓"))
+        } else {
+            FeatureRows(ctx.messaging.take(4).map { it to "✓" })
+        }
 
         Feature.MoneyCap -> Row(verticalAlignment = Alignment.Bottom) {
             BasicText("£60", style = Type.number.copy(color = p.text))
             BasicText(" a day", style = Type.body.copy(color = p.muted), modifier = Modifier.padding(bottom = 8.dp))
         }
 
-        Feature.Apps -> Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            repeat(3) {
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    repeat(3) { Box(Modifier.size(62.dp).clip(RoundedCornerShape(16.dp)).background(p.card)) }
+        // The real count: they are all still installed, which is the point of the step.
+        Feature.Apps -> Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                repeat(3) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        repeat(3) { Box(Modifier.size(62.dp).clip(RoundedCornerShape(16.dp)).background(p.card)) }
+                    }
                 }
+            }
+            if (ctx.appCount > 0) {
+                BasicText("all ${ctx.appCount} of them", style = Type.small.copy(color = p.dim))
             }
         }
 

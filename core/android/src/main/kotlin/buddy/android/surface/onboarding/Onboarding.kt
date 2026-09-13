@@ -54,6 +54,7 @@ import buddy.android.surface.creature.Mood
 import buddy.android.surface.setup.LockCredential
 import buddy.android.surface.setup.LockResult
 import buddy.android.surface.setup.SetupController
+import buddy.android.surface.setup.Transfer
 import buddy.android.surface.setup.WifiState
 import buddy.android.surface.theme.LocalPalette
 import buddy.android.surface.theme.Type
@@ -92,6 +93,19 @@ private fun Steps(onFinished: () -> Unit, includeSetup: Boolean) {
     var pinConfirming by rememberSaveable { mutableStateOf(false) }
     var pinMismatch by rememberSaveable { mutableStateOf(false) }
     val step = flow[index]
+
+    // What is actually on the phone. Re-read when a step comes up, so an account added in
+    // the framework's flow is on the screen when the user comes back.
+    var accounts by remember { mutableStateOf(emptyList<String>()) }
+    var messaging by remember { mutableStateOf(emptyList<String>()) }
+    var appCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(step.id) {
+        when (step.id) {
+            "old", "accounts" -> accounts = Transfer.accounts(context)
+            "messages" -> messaging = Transfer.messaging(context)
+            "apps" -> appCount = Transfer.appCount(context)
+        }
+    }
 
     fun next() {
         if (index < flow.lastIndex) {
@@ -160,6 +174,11 @@ private fun Steps(onFinished: () -> Unit, includeSetup: Boolean) {
         pinMismatch = pinMismatch,
         onPinKey = { pinKey(it) },
         onPinDelete = { if (pinEntry.isNotEmpty()) pinEntry = pinEntry.dropLast(1) },
+        accounts = accounts,
+        messaging = messaging,
+        appCount = appCount,
+        onAddAccount = { Transfer.addAccount(context) },
+        onMoveSim = { Transfer.moveSim(context) },
     )
 
     // Joining lands the user on the next step on its own, the way a wizard would.
@@ -175,7 +194,9 @@ private fun Steps(onFinished: () -> Unit, includeSetup: Boolean) {
         ctx = ctx,
         onPrimary = {
             if (step.id == "trust") { careful = true; Bootstrapper.applyTrust(context, careful = true) }
-            next()
+            // Signing in leaves buddy for the framework's own flow and comes back here, so
+            // this one step does not move on: the account list behind it is the answer.
+            if (step.id == "accounts") Transfer.addAccount(context) else next()
         },
         onSecondary = {
             if (step.id == "trust") { careful = false; Bootstrapper.applyTrust(context, careful = false) }
