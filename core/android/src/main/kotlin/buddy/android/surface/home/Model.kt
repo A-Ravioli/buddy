@@ -51,6 +51,21 @@ data class Recall(override val id: String, val lines: List<RecallLine>, val acti
 data class HandledRow(val domain: SurfaceDomain, val label: String, val text: String)
 data class Handled(override val id: String, val since: String, val rows: List<HandledRow>) : ChatItem
 
+/**
+ * Something only the user can do, inside an app: a bank wanting a face, a login that
+ * expired, a screen that moved under a recipe. buddy opens the app; the user does the one
+ * thing, and comes back.
+ */
+data class HandOver(
+    override val id: String,
+    val domain: SurfaceDomain,
+    val app: String,
+    val title: String,
+    val why: String,
+    val open: String = "Open it",
+    val later: String = "Not now",
+) : ChatItem
+
 data class Receipt(override val id: String, val domain: SurfaceDomain, val text: String, val fix: String = "Fix it") : ChatItem
 
 data class ComingUp(override val id: String, val rows: List<Pair<String, String>>) : ChatItem
@@ -77,5 +92,5 @@ data class SurfaceState(
     /** The ledger opens after the first unlock; until then there is nothing to show. */
     val locked: Boolean = false,
 ) {
-    val needsYou: Int get() = items.count { it is Decision || it is SuggestedReply || it is Hold }
+    val needsYou: Int get() = items.count { it is Decision || it is SuggestedReply || it is Hold || it is HandOver }
 }

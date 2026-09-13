@@ -64,4 +64,14 @@ class CommandParserTest {
         assertIs<Command.Instruction>(p("never text my mum for me"))
         assertEquals(Command.Torch(false), p("switch off the torch"))
     }
+
+    /** The launcher is gone, so this is the only way into an app. */
+    @Test
+    fun `opening an app`() {
+        assertEquals(Command.Open("Monzo"), p("open Monzo"))
+        assertEquals(Command.Open("the camera"), p("show me the camera"))
+        assertEquals(Command.Open("National Rail"), p("buddy, launch National Rail."))
+        // The network picker is buddy's own, not an app called wifi.
+        assertEquals(Command.Network, p("show me the wifi"))
+    }
 }

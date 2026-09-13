@@ -57,4 +57,7 @@ snapshot types and a call to `Ingest.submit`.
 | `surface/home/` | Cards for decisions, replies, holds, recalls, handled counts and receipts; the quiet state; the timeline; the network picker; the playground |
 | `surface/theme/` | Three schemes (colour, black and white, green), one colour per domain, the two bundled typefaces (OFL) |
 | `device/Torch.kt` | The torch, which buddy holds now that the quick settings panel is gone |
+| `device/Arrival.kt` | How buddy announces himself: a generated chime and a tap, quiet in quiet hours |
+| `device/Apps.kt` | The way into an app, asked for by name, now that there is no launcher |
+| `surface/call/` | The call: buddy holds the dialer role, so this is the only in-call UI on the phone |
 | `voice/VoiceServices.kt` | The voice interaction role holders and the command path they share with the surface |

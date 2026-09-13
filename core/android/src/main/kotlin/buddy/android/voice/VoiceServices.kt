@@ -13,6 +13,7 @@ import android.util.Log
 import buddy.actuation.Actions
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.device.Apps
 import buddy.android.device.Torch
 import buddy.android.ledger.LedgerHolder
 import buddy.android.surface.SurfaceStore
@@ -106,6 +107,7 @@ object CommandHandler {
                 SurfaceStore.ask(SurfaceStore.Ask.NETWORK)
                 return "Networks are on the screen."
             }
+            is Command.Open -> return open(c.app)
             else -> Unit
         }
         val ledger = LedgerHolder.getOrNull() ?: return "The ledger is locked until you unlock the phone."
@@ -139,8 +141,18 @@ object CommandHandler {
                 "Noted."
             }
             is Command.Unknown -> "I didn't understand that."
-            is Command.Torch, is Command.Network -> "" // answered above
+            is Command.Torch, is Command.Network, is Command.Open -> "" // answered above
         }
+    }
+
+    /**
+     * The way into an app, now that the launcher is gone. buddy opens it and the user
+     * comes back to him; there is no grid to get lost in.
+     */
+    private fun open(query: String): String {
+        val context = SurfaceStore.appContext ?: return "Not ready yet."
+        val app = Apps.match(query, Apps.launchable(context)) ?: return "I don't have an app called that."
+        return if (Apps.open(context, app.packageName)) "Opening ${app.label}." else "I can't open ${app.label}."
     }
 
     private fun torch(on: Boolean?): String {

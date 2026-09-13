@@ -85,6 +85,21 @@ fun DecisionCard(item: Decision, onChoose: (accepted: Boolean) -> Unit) {
     }
 }
 
+/** buddy cannot finish this one. The app is the only place it can be done. */
+@Composable
+fun HandOverCard(item: HandOver, onChoose: (open: Boolean) -> Unit) {
+    val p = LocalPalette.current
+    Card {
+        SourceChip(item.domain, item.app)
+        BasicText(item.title, style = Type.cardTitle.copy(color = p.text))
+        BasicText(item.why, style = Type.bodyMuted.copy(color = p.muted))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(item.open, p.domain(item.domain)) { onChoose(true) }
+            Button(item.later, null) { onChoose(false) }
+        }
+    }
+}
+
 @Composable
 fun SuggestedReplyCard(item: SuggestedReply, onChoose: (send: Boolean) -> Unit) {
     val p = LocalPalette.current

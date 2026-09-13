@@ -5,12 +5,14 @@ import android.util.Log
 import buddy.actuation.Actions
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.device.Apps
 import buddy.android.ledger.LedgerHolder
 import buddy.android.surface.creature.Mood
 import buddy.android.surface.home.BuddySays
 import buddy.android.surface.home.ChatItem
 import buddy.android.surface.home.ComingUp
 import buddy.android.surface.home.Decision
+import buddy.android.surface.home.HandOver
 import buddy.android.surface.home.Handled
 import buddy.android.surface.home.HandledRow
 import buddy.android.surface.home.Hold
@@ -88,6 +90,9 @@ object SurfaceStore {
     /** Held for the lock screen channel, which is written from the background thread. */
     @Volatile
     private var app: Context? = null
+
+    /** The application context, for the paths that reach the phone rather than the ledger. */
+    val appContext: Context? get() = app
 
     @Volatile
     private var published: Boolean? = null
@@ -175,6 +180,23 @@ object SurfaceStore {
                         } else {
                             if (p != null) prefill.value = p.payload["text"] ?: ""
                             note(ledger, "dismissed_proposal", e.id, mapOf("proposal_id" to (p?.id ?: "")))
+                        }
+                    }
+                    itemId.startsWith("open-") -> {
+                        val e = ledger.get(itemId.removePrefix("open-")) ?: return@execute
+                        val pkg = e.structured["needs_you_in"]
+                        val context = app
+                        if (accepted && pkg != null && context != null) {
+                            val opened = Apps.open(context, pkg)
+                            note(ledger, if (opened) "handed_over" else "hand_over_failed", e.id, mapOf("package" to pkg))
+                            exchanges.add(
+                                BuddySays(
+                                    "b-${System.currentTimeMillis()}",
+                                    if (opened) "Opened ${Apps.labelOf(context, pkg)}. Tell me when it's done." else "I can't open that one.",
+                                ),
+                            )
+                        } else {
+                            note(ledger, "dismissed_item", e.id, emptyMap())
                         }
                     }
                     itemId.startsWith("tri-") -> {
@@ -265,6 +287,21 @@ object SurfaceStore {
                     val total = (Brain.policyProfile.holdMinutes * 60_000L).coerceAtLeast(1L)
                     val fraction = (1f - ((until - System.currentTimeMillis()).toFloat() / total)).coerceIn(0f, 1f)
                     items.add(Hold("hold-${e.id}", domainOf(e), source(e, byId), describe(e), e.text ?: reasons(e), fraction, now = "Now"))
+                }
+                "failed" -> {
+                    // buddy got as far as the app and could not finish. The one thing left
+                    // is a person doing it there, so he offers to open it (see Apps).
+                    val pkg = e.structured["needs_you_in"] ?: continue
+                    if (e.id in noted || "open-${e.id}" in dismissed) continue
+                    covered.addAll(sources)
+                    val label = app?.let { Apps.labelOf(it, pkg) } ?: pkg
+                    items.add(
+                        HandOver(
+                            "open-${e.id}", domainOf(e), label,
+                            describe(e) + ": I got stuck.",
+                            "This one needs you in ${label}. I'll be here when you're back.",
+                        ),
+                    )
                 }
                 "escalated" -> {
                     if (e.id in noted || "esc-${e.id}" in dismissed) continue

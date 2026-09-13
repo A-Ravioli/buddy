@@ -129,4 +129,31 @@ class ExecutorTest {
         assertEquals(listOf("mailto:u@x.com?subject=unsub", "https://x.com/u"), MailMessages.unsubscribeTargets("<mailto:u@x.com?subject=unsub>, <https://x.com/u>"))
         assertEquals(emptyList(), MailMessages.unsubscribeTargets(null))
     }
+
+    /**
+     * A recipe that stalls has stalled inside an app, and the surface turns that into a
+     * hand-over: buddy opens it and the user finishes the one thing only they can. The
+     * package has to survive the trip through the ledger for that to happen.
+     */
+    @Test
+    fun `a stalled recipe records where the user has to finish it`() {
+        val runner = object : RecipeRunnerFacade {
+            var reason = "drift"
+            override fun run(packageName: String, action: String, params: Map<String, String>) =
+                Triple(false, reason, listOf("step 3"))
+            override fun available() = setOf("com.monzo.app" to Actions.CREATE_EVENT.name)
+        }
+        val exec = Executor(ledger, listOf(RecipeConnector(runner)), now = { clock })
+        val pay = Proposal("r1", Actions.CREATE_EVENT, payload = mapOf("package" to "com.monzo.app", "title" to "pay the water bill"))
+
+        val stalled = exec.apply(pay, Verdict.Run(emptyList()))
+        assertEquals("failed", stalled.structured["state"])
+        assertEquals("com.monzo.app", stalled.structured["needs_you_in"])
+
+        // Never having reached the app is not something a person can finish either.
+        runner.reason = "no recipe"
+        val never = exec.apply(pay, Verdict.Run(emptyList()))
+        assertEquals("failed", never.structured["state"])
+        assertNull(never.structured["needs_you_in"])
+    }
 }

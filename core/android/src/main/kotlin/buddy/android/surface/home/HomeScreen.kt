@@ -158,6 +158,7 @@ private fun ChatItemView(item: ChatItem, onResolve: (String, Boolean) -> Unit, o
             }
         }
         is Decision -> DecisionCard(item) { onResolve(item.id, it) }
+        is HandOver -> HandOverCard(item) { onResolve(item.id, it) }
         is SuggestedReply -> SuggestedReplyCard(item) { onResolve(item.id, it) }
         is Hold -> HoldCard(item, onStop = { onResolve(item.id, false) }, onNow = { onResolve(item.id, true) })
         is Recall -> RecallCard(item) { }
