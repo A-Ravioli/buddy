@@ -46,4 +46,22 @@ class CommandParserTest {
         assertIs<Command.Unknown>(p("la la la"))
         assertIs<Command.Unknown>(p(""))
     }
+
+    @Test
+    fun `the switches quick settings used to carry`() {
+        assertEquals(Command.Torch(true), p("torch on"))
+        assertEquals(Command.Torch(false), p("turn off the flashlight"))
+        assertEquals(Command.Torch(false), p("buddy, torch off."))
+        assertEquals(Command.Torch(null), p("torch"))
+        assertEquals(Command.Network, p("wifi"))
+        assertEquals(Command.Network, p("connect me to the wi-fi"))
+        assertEquals(Command.Network, p("get me back online"))
+    }
+
+    /** "stop" opens a standing instruction, so the torch has to be read first. */
+    @Test
+    fun `a switch is not a standing instruction`() {
+        assertIs<Command.Instruction>(p("never text my mum for me"))
+        assertEquals(Command.Torch(false), p("switch off the torch"))
+    }
 }

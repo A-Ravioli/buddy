@@ -23,6 +23,8 @@ class BuddyApp : Application() {
         // Patch 0013: the chrome that assumes a viewer. Disable flags live with this
         // process, so they are re-applied every boot rather than written once.
         buddy.android.surface.lockscreen.SystemChrome.apply(this)
+        // The torch came with the quick settings panel that just went; buddy holds it now.
+        buddy.android.device.Torch.init(this)
         BriefScheduler.schedule(this)
         BriefScheduler.scheduleHoldRelease(this)
         IdleJobService.schedule(this)

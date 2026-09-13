@@ -19,6 +19,7 @@ import buddy.android.surface.home.SurfaceState
 import buddy.android.surface.home.TimelineEntry
 import buddy.android.surface.home.UserSays
 import buddy.android.surface.home.Affordance
+import buddy.android.surface.lockscreen.LockFace
 import buddy.android.surface.theme.SurfaceDomain
 import buddy.android.voice.CommandHandler
 import buddy.cognition.Planned
@@ -57,6 +58,16 @@ object SurfaceStore {
     /** Text the composer should show, set by "Change it" and "Reply". */
     val prefill = MutableStateFlow("")
 
+    /** A screen the user asked for in words rather than found in a panel. */
+    enum class Ask { NETWORK }
+
+    /** Set by [CommandHandler]; the surface opens it and clears it. */
+    val asked = MutableStateFlow<Ask?>(null)
+
+    fun ask(a: Ask) {
+        asked.value = a
+    }
+
     private val io = Executors.newSingleThreadExecutor { r -> Thread(r, "buddy-surface") }
     private val fmt = SimpleDateFormat("H:mm", Locale.ROOT)
 
@@ -67,7 +78,18 @@ object SurfaceStore {
     private var forced: Mood? = null
     private var settle: java.util.concurrent.Future<*>? = null
 
+    /** Held for the lock screen channel, which is written from the background thread. */
+    @Volatile
+    private var app: Context? = null
+
+    @Volatile
+    private var published: Boolean? = null
+
+    @Volatile
+    private var publishedQuiet: LockFace.Quiet? = null
+
     fun init(context: Context) {
+        app = context.applicationContext
         LedgerHolder.whenAvailable { refresh() }
     }
 
@@ -415,7 +437,34 @@ object SurfaceStore {
     // ---- the creature's mood
 
     private fun settleMood() {
-        if (forced == null) _mood.value = if (_state.value.needsYou > 0) Mood.NEEDS_YOU else Mood.RESTING
+        val waiting = _state.value.needsYou > 0
+        if (forced == null) _mood.value = if (waiting) Mood.NEEDS_YOU else Mood.RESTING
+        publishLockFace(waiting)
+    }
+
+    /**
+     * The same answer for the lock screen, which is drawn by SystemUI and so reads it
+     * from settings rather than from here (see [LockFace]). Only the settled mood goes
+     * out: listening, working and done are what buddy does while someone is looking at
+     * him, and nobody is looking at a locked phone.
+     *
+     * Quiet hours go out only once the ledger is open, because the profile they come from
+     * is in credential-encrypted storage. Until then the window from before the reboot
+     * stands, which is the right answer on a phone that has not been unlocked since.
+     */
+    private fun publishLockFace(waiting: Boolean) {
+        val context = app ?: return
+        if (published != waiting) {
+            LockFace.publish(context, waiting)
+            published = waiting
+        }
+        if (_state.value.locked) return
+        val limits = Brain.policyProfile.limits
+        val quiet = LockFace.Quiet(limits.quietStartHour, limits.quietEndHour)
+        if (publishedQuiet != quiet) {
+            LockFace.publishQuiet(context, quiet)
+            publishedQuiet = quiet
+        }
     }
 
     /** Listened, worked, a short "done", then back to whatever the queue says. */

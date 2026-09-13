@@ -13,7 +13,9 @@ import android.util.Log
 import buddy.actuation.Actions
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.device.Torch
 import buddy.android.ledger.LedgerHolder
+import buddy.android.surface.SurfaceStore
 import buddy.ledger.EventKind
 import buddy.policy.PolicyContext
 import buddy.policy.PolicyEngine
@@ -96,6 +98,16 @@ class CommandSession(private val service: VoiceInteractionSessionService) : Voic
  */
 object CommandHandler {
     fun handle(c: Command): String {
+        // The switches quick settings used to carry. They work on a locked phone, which
+        // is exactly when someone asks for the torch, so they come before the ledger.
+        when (c) {
+            is Command.Torch -> return torch(c.on)
+            is Command.Network -> {
+                SurfaceStore.ask(SurfaceStore.Ask.NETWORK)
+                return "Networks are on the screen."
+            }
+            else -> Unit
+        }
         val ledger = LedgerHolder.getOrNull() ?: return "The ledger is locked until you unlock the phone."
         return when (c) {
             is Command.Brief -> ledger.recent(50).firstOrNull { it.kind == EventKind.BRIEF }?.text ?: "No brief yet."
@@ -127,7 +139,14 @@ object CommandHandler {
                 "Noted."
             }
             is Command.Unknown -> "I didn't understand that."
+            is Command.Torch, is Command.Network -> "" // answered above
         }
+    }
+
+    private fun torch(on: Boolean?): String {
+        if (!Torch.available) return "This phone has no torch."
+        val lit = if (on == null) Torch.toggle() else Torch.set(on)
+        return if (lit) "Torch on." else "Torch off."
     }
 }
 

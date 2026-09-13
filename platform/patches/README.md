@@ -25,7 +25,7 @@ changes in Phase 0 is small.
 | 0010 | Concurrent low-priority ambient mic stream | patch, maybe | `frameworks/av` |
 | 0011 | Microphone indicator behaviour | patch | `frameworks/base` |
 | 0012 | Per-subsystem SELinux domains | patch, Phase 4 | `system/sepolicy`, `sepolicy/draft` |
-| 0013 | Remove viewer chrome: the launcher, recents and quick settings | **no patch**: Soong `overrides`, a SystemUI resource overlay, and a disable flag from the app | `Android.bp`, `overlay/`, app |
+| 0013 | Remove viewer chrome: the launcher, recents, the shade and quick settings | **no patch**: Soong `overrides`, a SystemUI resource overlay, and a disable flag from the app | `Android.bp`, `overlay/`, app |
 | 0014 | Replace the setup wizard with buddy's wake-up | **no patch**: Soong `overrides` plus buddy setting `device_provisioned` itself | `Android.bp`, app |
 | 0015 | The lock screen is buddy's face and nothing else | partly no patch (secure settings), partly patch (the keyguard's content) | app, `frameworks/base/packages/SystemUI` |
 
@@ -126,17 +126,31 @@ nothing. Rather than leave a gesture that half-animates into an empty screen, bu
 token for as long as its process lives, and buddy is a persistent app, so re-applying at
 boot is the whole of it.
 
-**Quick settings** keeps the internet toggle and the torch, the two things buddy cannot
-do on the user's behalf. The default tile list is a SystemUI string resource, so
-`overlay/frameworks/base/packages/SystemUI/res/values/config.xml` replaces it. A phone
-that has been used has its own list in `Settings.Secure`, which wins over the default, so
-buddy writes the same pair there at boot too.
+**The notification shade** does not pull down: `disable2(DISABLE2_NOTIFICATION_SHADE)`,
+with `DISABLE2_QUICK_SETTINGS` named alongside it so a release where the two come apart
+still loses the panel. Nothing posts to the shade on this build — buddy is the
+notification assistant and holds what arrives — so the drawer would open on a "no
+notifications" label, which is a worse answer than no drawer. The same call adds
+`DISABLE_NOTIFICATION_ICONS` and `DISABLE_NOTIFICATION_ALERTS`: what interrupts the user
+is buddy's decision, not each app's, so nothing rings or peeks on its own account.
+
+**Quick settings** goes with the shade, and the two switches it was still carrying move
+into buddy, because they are things he can do rather than things only a panel can:
+"torch" throws the flash (`buddy/android/device/Torch.kt`), and "wifi" opens the network
+picker he used to get the phone online during the walk-through
+(`surface/home/NetworkScreen.kt`). Both are ordinary commands, so they work spoken,
+typed, or through the earbuds, and the torch answers before the ledger is even open —
+which is the state the phone is in when someone asks for a torch. The trimmed tile list
+is still written, by the SystemUI resource overlay and by buddy into `Settings.Secure`,
+because it is what a build whose disable call fails would fall back to.
 
 The status bar stays. A clock and a battery figure are not something to manage, and a
 phone that cannot show either is a worse phone, not a calmer one.
 
-Verify by booting: home is buddy, swipe-up does nothing, the quick settings panel has two
-tiles, and `adb shell settings get secure sysui_qs_tiles` reads `internet,flashlight`.
+Verify by booting: home is buddy, swipe-up does nothing, and a pull down from the top
+does nothing. Say "torch" and the flash lights; say "wifi" and the picker opens. On a
+build where the disable call failed, the panel is there with two tiles and
+`adb shell settings get secure sysui_qs_tiles` reads `internet,flashlight`.
 
 ## 0014: replace the setup wizard
 
@@ -191,17 +205,31 @@ notification section with a single full-screen `BuddyFaceView`. The always-on di
 shares that root, so the same view serves both; it takes `lowPower = true` there, which
 drops the breathing and blinks rarely.
 
-**The file to vendor.** `BuddyFaceView`, `FacePainter`, `FaceGeometry` and `CreatureState`
-from `core/android/src/main/kotlin/buddy/android/surface/`, copied into SystemUI. They use
-only `android.graphics` and plain Kotlin, so they compile there unchanged. They are
-compiled and unit-tested in this repo (`core/android-verify`), which is why the copy is
-safe: `FaceGeometry` is the single definition of where the strokes go, and
-`FaceGeometryTest` pins the rules the two drawings share.
+**The files to vendor.** `BuddyFaceView`, `LockFace`, `FacePainter`, `FaceGeometry` and
+`CreatureState` from `core/android/src/main/kotlin/buddy/android/surface/`, copied into
+SystemUI. They use only `android.graphics`, the settings provider and plain Kotlin, so
+they compile there unchanged. They are compiled and unit-tested in this repo
+(`core/android-verify`), which is why the copy is safe: `FaceGeometry` is the single
+definition of where the strokes go, and `FaceGeometryTest` and `LockFaceTest` pin the
+rules the two sides share.
 
-**The mood.** The lockscreen controller sets it: `ASLEEP` during quiet hours, `NEEDS_YOU`
-when the escalation queue is not empty, `RESTING` otherwise. No count, no preview, no
-sender. The eyes lifting is the notification. Read it from the same policy the surface
-uses rather than inventing a second source.
+**The mood.** SystemUI cannot reach into buddy's process, so the face reads what he
+publishes: two `Settings.Global` keys, `buddy_lock_face` ("waiting" or "rest") and
+`buddy_lock_quiet` (quiet hours as "22-8"). `LockFace` is both ends of that, and
+`BuddyFaceView` observes the keys itself, so the patch has nothing to wire beyond adding
+the view. Global settings are device-encrypted, so they read back before the first unlock
+— which is when the lock screen is first drawn — and they survive a reboot, so a phone
+restarted overnight still knows to keep its eyes shut.
+
+Quiet hours are evaluated in the view against the published window rather than published
+as a state, so a phone nobody has touched since yesterday still falls asleep at the right
+hour; the view wakes once an hour to check and otherwise draws nothing. Quiet hours beat
+a waiting item: the point of the window is that the phone does not summon anyone, and a
+glow across a dark room is a summons.
+
+Nothing about the user's content crosses this channel. Whether something is waiting and
+when the night is — that is the whole protocol. No count, no preview, no sender. The eyes
+lifting is the notification.
 
 **What is not touched.** The bouncer and everything behind it: `KeyguardSecurityContainer`,
 `LockPatternUtils`, the credential checking and the lockout policy. This patch changes

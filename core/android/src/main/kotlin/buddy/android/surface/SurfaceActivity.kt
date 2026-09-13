@@ -10,6 +10,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import buddy.android.BuddyApp
 import buddy.android.surface.home.HomeScreen
+import buddy.android.surface.home.NetworkScreen
 import buddy.android.surface.home.PlaygroundScreen
 import buddy.android.surface.home.TimelineScreen
 import buddy.android.surface.onboarding.Onboarding
@@ -74,7 +76,7 @@ class SurfaceActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private enum class Screen { HOME, TIMELINE, PLAYGROUND }
+    private enum class Screen { HOME, TIMELINE, PLAYGROUND, NETWORK }
 
     @Composable
     private fun Surface() {
@@ -82,8 +84,19 @@ class SurfaceActivity : ComponentActivity() {
         val mood by SurfaceStore.mood.collectAsState()
         val prefill by SurfaceStore.prefill.collectAsState()
         var screen by remember { mutableStateOf(Screen.HOME) }
+        val asked by SurfaceStore.asked.collectAsState()
 
         BackHandler(enabled = screen != Screen.HOME) { screen = Screen.HOME }
+
+        // "wifi", said or typed, is how the network list is reached now that quick
+        // settings is gone. The request waits in the store until the surface is up.
+        LaunchedEffect(asked) {
+            when (asked) {
+                SurfaceStore.Ask.NETWORK -> screen = Screen.NETWORK
+                null -> Unit
+            }
+            if (asked != null) SurfaceStore.asked.value = null
+        }
 
         when (screen) {
             Screen.HOME -> HomeScreen(
@@ -100,6 +113,7 @@ class SurfaceActivity : ComponentActivity() {
                 onPlayground = { screen = Screen.PLAYGROUND },
             )
             Screen.TIMELINE -> TimelineScreen(state.timeline, onBack = { screen = Screen.HOME }, onUndo = SurfaceStore::undo)
+            Screen.NETWORK -> NetworkScreen(onBack = { screen = Screen.HOME })
             Screen.PLAYGROUND -> PlaygroundScreen(
                 onBack = { screen = Screen.HOME },
                 onRawTimeline = { startActivity(Intent(this, TimelineActivity::class.java)) },

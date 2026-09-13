@@ -78,6 +78,10 @@ dependencies {
     // The Compose compiler plugin runs over the test sources too and wants the runtime on
     // the compile classpath, even though no test composes anything.
     testCompileOnly(libs.compose.runtime.desktop)
+    // The framework jar is Maven Central's, so it can join the test runtime without
+    // reaching Google's Maven. LockFaceTest loads a class whose signatures mention
+    // android.net.Uri; nothing calls into the framework.
+    testRuntimeOnly(libs.robolectric.android.all)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)

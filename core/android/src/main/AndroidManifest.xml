@@ -44,7 +44,9 @@
     <uses-permission android:name="android.permission.NETWORK_SETUP_WIZARD" />
     <uses-permission android:name="android.permission.ACCESS_KEYGUARD_SECURE_STORAGE" />
     <uses-permission android:name="android.permission.SET_INITIAL_LOCK" />
-    <!-- Patch 0013: turning off the chrome that assumes a viewer. -->
+    <!-- Patch 0013: turning off the chrome that assumes a viewer. WRITE_SECURE_SETTINGS,
+         above, also carries the lock screen's settings (patch 0015) and the two keys buddy
+         publishes his face's state through, which SystemUI reads. -->
     <uses-permission android:name="android.permission.STATUS_BAR" />
 
     <application

@@ -52,8 +52,9 @@ snapshot types and a call to `Ingest.submit`.
 | `surface/creature/` | buddy: a circle and two strokes, eight moods, five gazes, animated between states |
 | `surface/onboarding/` | The wake sequence, the one-phrase steps, and the bootstrap that infers the profile while they run |
 | `surface/setup/` | What a setup wizard would do, since buddy replaces it: joining Wi-Fi, setting the first lock credential, and marking the device provisioned |
-| `surface/lockscreen/` | buddy's face as a plain View for SystemUI to host, the secure settings that strip the lock screen back to it, and the chrome buddy turns off |
+| `surface/lockscreen/` | buddy's face as a plain View for SystemUI to host, the settings channel it reads his mood from, the secure settings that strip the lock screen back to it, and the chrome buddy turns off |
 | `creature/FaceGeometry.kt` | The one definition of where the two strokes go. The Compose creature and the lock screen View both read it, so they cannot drift |
-| `surface/home/` | Cards for decisions, replies, holds, recalls, handled counts and receipts; the quiet state; the timeline; the playground |
+| `surface/home/` | Cards for decisions, replies, holds, recalls, handled counts and receipts; the quiet state; the timeline; the network picker; the playground |
 | `surface/theme/` | Three schemes (colour, black and white, green), one colour per domain, the two bundled typefaces (OFL) |
-| `voice/VoiceServices.kt` | Voice interaction role holders, no behaviour yet |
+| `device/Torch.kt` | The torch, which buddy holds now that the quick settings panel is gone |
+| `voice/VoiceServices.kt` | The voice interaction role holders and the command path they share with the surface |

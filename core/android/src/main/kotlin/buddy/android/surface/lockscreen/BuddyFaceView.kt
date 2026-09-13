@@ -1,13 +1,17 @@
 package buddy.android.surface.lockscreen
 
 import android.content.Context
+import android.database.ContentObserver
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.RectF
+import android.os.Handler
+import android.os.Looper
 import android.util.AttributeSet
 import android.view.View
 import buddy.android.surface.creature.FacePainter
 import buddy.android.surface.creature.Mood
+import java.time.LocalTime
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -21,6 +25,10 @@ import kotlin.random.Random
  * learns from a locked phone is whether anything needs them, and that is the eyes. From
  * the creature sheet: at rest it breathes and blinks; when something is waiting the eyes
  * lift and the glow warms; during quiet hours they are shut.
+ *
+ * The face follows what buddy publishes through [LockFace], because SystemUI cannot reach
+ * into his process. Quiet hours are evaluated here rather than published as a state, so a
+ * phone nobody has touched since yesterday still shuts its eyes at the right hour.
  *
  * [lowPower] is the always-on case: no breathing and a rare blink, because this draws for
  * hours on a dimmed panel.
@@ -51,9 +59,69 @@ class BuddyFaceView @JvmOverloads constructor(
     var lowPower: Boolean = false
         set(value) { field = value; invalidate() }
 
+    /**
+     * Follow what buddy publishes. False pins [mood] where the caller put it, which is
+     * what the rendered screens and any preview want.
+     */
+    var follow: Boolean = true
+        set(value) {
+            field = value
+            if (isAttachedToWindow) {
+                if (value) startFollowing() else stopFollowing()
+            }
+        }
+
     private var blinkStartedAt = 0L
     private var nextBlinkAt = 0L
     private val random = Random(System.nanoTime())
+
+    private val clock = Handler(Looper.getMainLooper())
+    private val recheck = Runnable { sync() }
+    private val observer = object : ContentObserver(clock) {
+        override fun onChange(selfChange: Boolean) = sync()
+    }
+    private var observing = false
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (follow) startFollowing()
+    }
+
+    override fun onDetachedFromWindow() {
+        stopFollowing()
+        super.onDetachedFromWindow()
+    }
+
+    private fun startFollowing() {
+        if (!observing) {
+            val resolver = context.contentResolver
+            resolver.registerContentObserver(LockFace.faceUri(), false, observer)
+            resolver.registerContentObserver(LockFace.quietUri(), false, observer)
+            observing = true
+        }
+        sync()
+    }
+
+    private fun stopFollowing() {
+        if (observing) {
+            context.contentResolver.unregisterContentObserver(observer)
+            observing = false
+        }
+        clock.removeCallbacks(recheck)
+    }
+
+    /**
+     * Read what buddy published and come back at the next hour, which is the only moment
+     * the answer can change without anyone writing anything.
+     */
+    private fun sync() {
+        if (!follow) return
+        val now = LocalTime.now()
+        mood = LockFace.moodOf(LockFace.read(context.contentResolver, now.hour))
+        clock.removeCallbacks(recheck)
+        val untilNextHour = (60L - now.minute) * 60_000L - now.second * 1_000L
+        clock.postDelayed(recheck, untilNextHour.coerceAtLeast(1_000L))
+    }
 
     override fun onDraw(canvas: Canvas) {
         val now = System.currentTimeMillis()
