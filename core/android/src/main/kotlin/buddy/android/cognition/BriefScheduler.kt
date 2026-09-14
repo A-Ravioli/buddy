@@ -88,23 +88,23 @@ object BriefScheduler {
         window.reverse()
         val decisions = window.filter { it.kind == EventKind.TRIAGE }.mapNotNull(TriageRecorder::fromEvent).associateBy { it.eventId }
         val subjects = window.filter { it.kind != EventKind.TRIAGE && it.kind != EventKind.BRIEF }
-        // Phase 2: act on the work items first, so the brief reports what was done.
-        Brain.actPlanner?.let { act ->
-            val hour = java.time.ZonedDateTime.now().hour
-            val codes = subjects.flatMap(buddy.cognition.Envelope::codes).toSet()
-            val report = act.act(subjects, decisions, now, hour, codes, spentToday = emptyMap())
-            Log.i(BuddyApp.TAG, "act cycle: ${report.outcomes.size} proposals, agent=${report.agent?.status}")
-        }
+        // The agent works its jobs first, so the brief reports what actually happened
+        // (docs/07: the cycle is now one of the reasons to wake, not the only one).
+        Wakes.onCycle(cycle, subjects, decisions)
         return planner.plan(subjects, decisions, now, cycle)
     }
 
-    /** Releases held actions whose hold has expired. Called by the hold alarm every few minutes. */
+    /**
+     * The few-minute tick: held actions whose window expired, then the tasks whose own
+     * clock came round and the ones that have gone stale.
+     */
     fun releaseDueHolds() {
         val exec = Brain.executor ?: return
         for ((held, _) in exec.dueHolds()) {
             val done = exec.release(held)
             Log.i(BuddyApp.TAG, "released hold ${held.id}: ${done.structured["state"]}")
         }
+        Wakes.tick()
     }
 
     fun scheduleHoldRelease(context: Context) {

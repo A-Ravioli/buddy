@@ -18,6 +18,7 @@ class BuddyApp : Application() {
         super.onCreate()
         LedgerHolder.init(this)
         Brain.init(this)
+        buddy.android.cognition.Wakes.init(this)
         Ingest.init(this)
         buddy.android.surface.SurfaceStore.init(this)
         // Patch 0013: the chrome that assumes a viewer. Disable flags live with this

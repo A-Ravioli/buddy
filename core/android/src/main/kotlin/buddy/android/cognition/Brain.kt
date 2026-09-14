@@ -8,7 +8,7 @@ import buddy.actuation.Executor
 import buddy.android.actuation.CalendarConnector
 import buddy.android.actuation.NotificationActionConnector
 import buddy.android.actuation.SmsConnector
-import buddy.cognition.ActPlanner
+import buddy.cognition.Agent
 import buddy.cognition.AnthropicCloudAgent
 import buddy.cognition.AnthropicCloudModel
 import buddy.cognition.BriefPlanner
@@ -23,6 +23,7 @@ import buddy.policy.PolicyEngine
 import buddy.policy.PolicyProfile
 import buddy.style.StyleBook
 import buddy.triage.RuleTriage
+import buddy.tasks.TaskStore
 import buddy.triage.TriageProfile
 import com.anthropic.client.AnthropicClient
 import com.anthropic.client.okhttp.AnthropicOkHttpClient
@@ -64,7 +65,12 @@ object Brain {
         private set
 
     @Volatile
-    var actPlanner: ActPlanner? = null
+    var tasks: TaskStore? = null
+        private set
+
+    /** The holistic agent (docs/07). One loop, woken for a reason, owning its tasks. */
+    @Volatile
+    var agent: Agent? = null
         private set
 
     @Volatile
@@ -106,9 +112,11 @@ object Brain {
         val exec = Executor(ledger, listOf(NotificationActionConnector(appContext), CalendarConnector(appContext), SmsConnector(appContext), buddy.actuation.RecipeConnector(recipes)))
         executor = exec
         val style = loadStyle(ledger)
-        actPlanner = ActPlanner(
-            ledger, e, PolicyEngine(policyProfile), exec,
-            agent = client?.let { AnthropicCloudAgent(it) },
+        val store = TaskStore(ledger)
+        tasks = store
+        agent = Agent(
+            ledger, e, store, PolicyEngine(policyProfile), exec,
+            cloud = client?.let { AnthropicCloudAgent(it) },
             zone = zone,
             style = style,
             // The second opinion is a cheap, separate call on a smaller model.

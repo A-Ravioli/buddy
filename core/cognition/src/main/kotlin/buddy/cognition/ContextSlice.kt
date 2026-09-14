@@ -30,6 +30,91 @@ class SliceBuilder(
     private val perThread: Int = 8,
 ) {
     /**
+     * The slice for one wake (docs/07, section 6).
+     *
+     * Deliberately much smaller than [forBrief]: the situation, the open jobs as one
+     * line each, the focused task's compiled state, and the events that caused the
+     * wake. Everything else the agent wants, it asks for with `recall` or
+     * `read_thread`. That is what keeps a wake the same size in year two as in week
+     * one.
+     */
+    fun forWake(
+        wake: buddy.tasks.Wake,
+        tasks: List<buddy.tasks.Task>,
+        focus: buddy.tasks.Task?,
+        triggers: List<Event>,
+        decisions: Map<String, TriageDecision>,
+        nowTs: Long,
+        localHour: Int,
+        userTurn: String? = null,
+    ): ContextSlice {
+        val sections = ArrayList<ContextSlice.Section>()
+        var used = 0
+        var truncated = false
+
+        fun add(title: String, body: String) {
+            if (body.isBlank()) return
+            val remaining = budgetChars - used
+            if (remaining <= 0) { truncated = true; return }
+            val text = if (body.length > remaining) { truncated = true; body.take(remaining) + "\n[truncated]" } else body
+            sections.add(ContextSlice.Section(title, text))
+            used += text.length + title.length + 6
+        }
+
+        add(
+            "Situation",
+            "Now is ${java.time.Instant.ofEpochMilli(nowTs).atZone(zone)} (local hour $localHour). " +
+                "Woken by ${wake.reason.name}${if (wake.detail.isBlank()) "" else ": ${wake.detail}"}.",
+        )
+        userTurn?.takeIf { it.isNotBlank() }?.let { add("What the person just said", it) }
+
+        focus?.let {
+            add(
+                "The task you are working on",
+                buildString {
+                    appendLine("id: ${it.id}")
+                    appendLine("goal: ${it.goal}")
+                    appendLine("state: ${it.state.name.lowercase()}${it.waitingOn?.let { w -> ", waiting on $w" } ?: ""}")
+                    appendLine("mandate: ${buddy.tasks.TaskStore.describe(it.mandate)}")
+                    appendLine("spent so far: ${it.actions} actions, ${it.spend} money, ${it.tokens} tokens")
+                    it.dueTs?.let { d -> appendLine("due: ${java.time.Instant.ofEpochMilli(d).atZone(zone)}") }
+                    appendLine()
+                    appendLine("Working state from the last turn:")
+                    append(it.workingSet.ifBlank { "(nothing yet — this is the first turn on this task)" })
+                },
+            )
+        }
+
+        val others = tasks.filter { it.id != focus?.id }
+        add(
+            "Your other open jobs",
+            others.joinToString("\n") {
+                "- ${it.id} [${it.state.name.lowercase()}] ${it.goal}" +
+                    (it.waitingOn?.let { w -> " (waiting on $w)" } ?: "") +
+                    (it.dueTs?.let { d -> " (due ${java.time.Instant.ofEpochMilli(d).atZone(zone).toLocalDate()})" } ?: "")
+            },
+        )
+
+        add("What woke you", Envelope.renderAll(triggers, zone))
+
+        val triageLines = triggers.mapNotNull { e ->
+            decisions[e.id]?.let { d -> "- ${e.id}: ${d.klass.name.lowercase()}${if (d.urgent) " (urgent)" else ""} — ${d.reasons.joinToString(", ")}" }
+        }
+        add("What triage made of it", triageLines.joinToString("\n"))
+
+        val actors = triggers.mapNotNull { it.structured["counterparty"] ?: it.actor }.distinct()
+        add(
+            "People involved",
+            actors.mapNotNull { a ->
+                val p = entities.personFor(buddy.entities.Identity.key(a)) ?: return@mapNotNull null
+                "- ${p.displayName ?: a}: ${p.relationship}, ${p.eventCount} events, identities ${p.identities.joinToString(", ")}"
+            }.joinToString("\n"),
+        )
+
+        return ContextSlice(sections, truncated)
+    }
+
+    /**
      * Builds the slice for a planning cycle: the triaged items in the window, their
      * threads, the people involved, open replies, and the situation.
      */

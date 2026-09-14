@@ -23,6 +23,7 @@ dependencies {
     api(project(":core:triage"))
     api(project(":core:entities"))
     api(project(":core:policy"))
+    api(project(":core:tasks"))
     api(project(":core:actuation"))
     api(project(":core:style"))
     implementation(libs.anthropic.java)

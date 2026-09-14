@@ -56,6 +56,16 @@ data class PolicyContext(
     val suspectedInjection: Boolean = false,
     /** The proposal was triggered by an actor on the emergency list. */
     val emergency: Boolean = false,
+    /** The mandate of the task this proposal belongs to, if it belongs to one (docs/07). */
+    val mandate: Mandate? = null,
+    /** Counterparties this task's own events introduced, for a mandate with no explicit list. */
+    val taskTargets: Set<String> = emptySet(),
+    /** Money this task has already committed, in the mandate's currency. */
+    val taskSpend: Double = 0.0,
+    /** Actions this task has already run. */
+    val taskActions: Int = 0,
+    /** Cloud tokens this task has already spent. */
+    val taskTokens: Long = 0,
 )
 
 /** Limits enforced in code. The model cannot see, argue with, or change these. */
@@ -123,6 +133,11 @@ class PolicyEngine(private val profile: PolicyProfile) {
         }
         if (p.target != null && p.target in limits.neverContacts) return Verdict.Deny(listOf("never_contact"))
 
+        // ---- The task's mandate: outside it, the human decides (docs/07, section 4). --
+        // Before everything else, because a mandate is the boundary the user drew for
+        // this job, and no autonomy level earned in general overrides it here.
+        ctx.mandate?.violations(p, ctx)?.takeIf { it.isNotEmpty() }?.let { return Verdict.Escalate(it) }
+
         // ---- Human decisions: escalate whatever the level. ----------------------------
         if (ctx.suspectedInjection) reasons += "injection_suspected"
         if (p.amount != null) {
@@ -140,8 +155,9 @@ class PolicyEngine(private val profile: PolicyProfile) {
             return Verdict.Hold(quietEnd(ctx), listOf("quiet_hours"))
         }
 
-        // ---- Autonomy level for the domain. -------------------------------------------
-        val level = profile.level(p.spec.domain, p.spec.blastRadius)
+        // ---- Autonomy level for the domain, narrowed by the task's mandate. -----------
+        var level = profile.level(p.spec.domain, p.spec.blastRadius)
+        ctx.mandate?.let { if (level.rank > it.maxLevel.rank) level = it.maxLevel }
         val irreversible = p.spec.reversibility == Reversibility.IRREVERSIBLE
         return when (level) {
             Level.OBSERVE -> Verdict.Escalate(listOf("level_observe"))
