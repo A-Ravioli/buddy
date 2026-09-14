@@ -47,12 +47,7 @@ class SqliteLedger(private val db: SqlDriver) : Ledger {
                 BEGIN SELECT RAISE(ABORT, 'ledger is append-only'); END
                 """.trimIndent(),
             )
-            db.exec(
-                """
-                CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
-                BEGIN SELECT RAISE(ABORT, 'ledger is append-only'); END
-                """.trimIndent(),
-            )
+            db.exec(NO_DELETE_TRIGGER)
             db.exec(
                 """
                 CREATE VIRTUAL TABLE IF NOT EXISTS events_fts USING fts5(
@@ -127,6 +122,66 @@ class SqliteLedger(private val db: SqlDriver) : Ledger {
 
     override fun count(): Long = db.query("SELECT COUNT(*) FROM events") { it.long(0) ?: 0L }.first()
 
+    /**
+     * The purge. Deleting requires standing the append-only trigger down for the
+     * length of one transaction, which is why it lives here and not in a caller: the
+     * only code that may remove rows is the code that puts the trigger back.
+     *
+     * The FTS index is external-content, so its rows are removed with the 'delete'
+     * command before the events go, or the index keeps the text we are purging.
+     */
+    override fun forget(sourceApp: String, nowTs: Long): ForgetReport {
+        val purged = db.query(
+            "SELECT id FROM events WHERE source_app = ?",
+            listOf(sourceApp),
+        ) { it.string(0)!! }.toSet()
+
+        // Notes whose evidence is entirely inside the purge. A note that also rests on
+        // events from elsewhere is kept: it is still true, and it names no source.
+        val notes = db.query(
+            "$SELECT WHERE kind = ? AND source_app != ?",
+            listOf(EventKind.MEMORY_NOTE.name, sourceApp),
+            ::row,
+        ).filter { note ->
+            val from = note.structured[DERIVED_FROM]?.split('|')?.filter { it.isNotEmpty() }.orEmpty()
+            from.isNotEmpty() && from.all { it in purged }
+        }.map { it.id }
+
+        val doomed = purged + notes
+        val tombstone = Event(
+            id = EventId.of(nowTs, "buddy", "tombstone", sourceApp),
+            ts = nowTs,
+            sourceApp = "buddy",
+            channel = "tombstone",
+            kind = EventKind.TOMBSTONE,
+            text = "Forgot $sourceApp: ${purged.size} events, ${notes.size} notes.",
+            structured = mapOf(
+                "forgot_source" to sourceApp,
+                "events" to purged.size.toString(),
+                "notes" to notes.size.toString(),
+            ),
+            trust = Trust.USER,
+        )
+
+        db.transaction {
+            db.exec("DROP TRIGGER IF EXISTS events_no_delete")
+            try {
+                for (id in doomed) {
+                    db.exec(
+                        "INSERT INTO events_fts(events_fts, rowid, text, actor) " +
+                            "SELECT 'delete', rowid, text, actor FROM events WHERE id = ?",
+                        listOf(id),
+                    )
+                    db.exec("DELETE FROM events WHERE id = ?", listOf(id))
+                }
+            } finally {
+                db.exec(NO_DELETE_TRIGGER)
+            }
+            insert(tombstone)
+        }
+        return ForgetReport(sourceApp, purged.size, notes.size, tombstone.id)
+    }
+
     private fun row(r: Row): Event = Event(
         id = r.string(0)!!,
         ts = r.long(1)!!,
@@ -143,6 +198,19 @@ class SqliteLedger(private val db: SqlDriver) : Ledger {
     )
 
     companion object {
+        /**
+         * Structured key naming the events a memory note was derived from, '|' separated.
+         * The ledger knows it because [forget] has to: a note whose evidence is purged
+         * goes with it (docs/07, section 6).
+         */
+        const val DERIVED_FROM = "derived_from"
+
+        val NO_DELETE_TRIGGER =
+            """
+            CREATE TRIGGER IF NOT EXISTS events_no_delete BEFORE DELETE ON events
+            BEGIN SELECT RAISE(ABORT, 'ledger is append-only'); END
+            """.trimIndent()
+
         private const val SELECT =
             "SELECT id, ts, source_app, channel, kind, actor, thread_id, text, structured, trust, raw_ref, supersedes FROM events"
 

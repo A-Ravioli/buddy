@@ -5,6 +5,7 @@ import android.util.Log
 import buddy.actuation.Actions
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.cognition.Wakes
 import buddy.android.device.Apps
 import buddy.android.ledger.LedgerHolder
 import buddy.android.surface.creature.Mood
@@ -32,6 +33,7 @@ import buddy.ledger.EventKind
 import buddy.ledger.Ledger
 import buddy.ledger.Trust
 import buddy.policy.Domain
+import buddy.tasks.TaskState
 import buddy.policy.Verdict
 import buddy.triage.TriageClass
 import buddy.voice.CommandParser
@@ -203,6 +205,15 @@ object SurfaceStore {
                         val e = ledger.get(itemId.removePrefix("tri-")) ?: return@execute
                         if (accepted) prefill.value = "reply to ${e.actor ?: e.sourceApp} " else note(ledger, "dismissed_item", e.id, emptyMap())
                     }
+                    itemId.startsWith("task-") -> {
+                        val tasks = Brain.tasks ?: return@execute
+                        val t = tasks.get(itemId.removePrefix("task-")) ?: return@execute
+                        val chosen = if (accepted) t.options.firstOrNull() ?: "yes" else t.options.getOrNull(1) ?: "no"
+                        tasks.answer(t, chosen)
+                        // The answer is the next thing the agent should read, so wake it
+                        // rather than leaving the job until the next cycle.
+                        Wakes.onUserTurn("About \"${t.goal}\": $chosen")
+                    }
                     itemId.startsWith("dec-") -> {
                         val i = itemId.removePrefix("dec-").toIntOrNull() ?: return@execute
                         val d = lastPlanned?.brief?.decisions?.getOrNull(i) ?: return@execute
@@ -267,6 +278,25 @@ object SurfaceStore {
                     id, domainOf(about), about?.let { "${it.actor ?: it.sourceApp} · ${it.sourceApp}" } ?: "buddy",
                     d.question, d.recommendation,
                     accept = recommended(d.options, d.recommendation), decline = other(d.options, d.recommendation),
+                ),
+            )
+        }
+
+        // A blocked task is a job that needs the person. It is the same shape as a
+        // brief decision — a question, the options, buddy's pick — so it renders as
+        // one, and answering it puts the job back to work (docs/07, section 3).
+        for (t in Brain.tasks?.open().orEmpty()) {
+            if (t.state != TaskState.BLOCKED || "task-${t.id}" in dismissed) continue
+            val question = t.question ?: continue
+            items.add(
+                Decision(
+                    "task-${t.id}",
+                    t.mandate.domains.firstOrNull()?.let(::map) ?: SurfaceDomain.HEARD,
+                    "buddy · ${t.goal}",
+                    question,
+                    t.recommendation.orEmpty(),
+                    accept = t.options.firstOrNull() ?: "Yes",
+                    decline = t.options.getOrNull(1) ?: "Not now",
                 ),
             )
         }

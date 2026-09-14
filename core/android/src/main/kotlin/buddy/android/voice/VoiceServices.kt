@@ -13,6 +13,7 @@ import android.util.Log
 import buddy.actuation.Actions
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.cognition.Wakes
 import buddy.android.device.Apps
 import buddy.android.device.Torch
 import buddy.android.ledger.LedgerHolder
@@ -132,7 +133,19 @@ object CommandHandler {
                 val rec = exec.apply(p, v)
                 "${rec.structured["state"]}: ${v.reasons.joinToString()}"
             }
-            is Command.Reply, is Command.Cancel, is Command.Reschedule -> "That comes with the next phase."
+            // Anything that is a job rather than a verb goes to the agent, which opens
+            // a task for it and works it across wakes (docs/07, section 3).
+            is Command.Reply, is Command.Cancel, is Command.Reschedule -> {
+                Wakes.onUserTurn(
+                    when (c) {
+                        is Command.Reply -> "Reply: ${c.text}"
+                        is Command.Cancel -> "Cancel ${c.what}"
+                        is Command.Reschedule -> "Move ${c.what}" + (c.to?.let { " to $it" } ?: "")
+                        else -> ""
+                    },
+                )
+                "On it. I'll come back to you."
+            }
             is Command.Instruction -> {
                 ledger.append(buddy.ledger.Event(
                     buddy.ledger.EventId.of(System.currentTimeMillis(), "buddy", "instruction", c.text), System.currentTimeMillis(), "buddy", "instruction",
@@ -140,7 +153,12 @@ object CommandHandler {
                 ))
                 "Noted."
             }
-            is Command.Unknown -> "I didn't understand that."
+            is Command.Unknown -> {
+                // Not one of buddy's handful of verbs, so it is a job: hand the words to
+                // the agent rather than dropping them.
+                Wakes.onUserTurn(c.text)
+                "Let me look at that."
+            }
             is Command.Torch, is Command.Network, is Command.Open -> "" // answered above
         }
     }

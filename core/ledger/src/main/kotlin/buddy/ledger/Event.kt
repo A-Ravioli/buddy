@@ -40,6 +40,10 @@ enum class EventKind {
     TRIAGE,
     /** A brief produced by a planning cycle (see core/cognition). */
     BRIEF,
+    /** A task snapshot or a line in a task's journal (see core/tasks). */
+    TASK,
+    /** The record of a purge: what was deleted from the ledger, when, and why. */
+    TOMBSTONE,
 }
 
 /**

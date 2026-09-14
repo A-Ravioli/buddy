@@ -29,4 +29,26 @@ interface Ledger {
     fun corrections(id: String): List<Event>
 
     fun count(): Long
+
+    /**
+     * Deletes every event from [sourceApp], and every memory note derived from one of
+     * them, then records a [ForgetReport] as a TOMBSTONE event.
+     *
+     * This is the one deliberate exception to append-only (docs/07, decision 14).
+     * Revocation that leaves copies is not revocation: when the user disconnects a
+     * source, the events, the search index rows, and the notes that were derived from
+     * them all go. What remains is the tombstone, which says what was purged and when,
+     * because a silent gap in the record is its own kind of dishonesty.
+     */
+    fun forget(sourceApp: String, nowTs: Long = System.currentTimeMillis()): ForgetReport
 }
+
+/** What one [Ledger.forget] removed. */
+data class ForgetReport(
+    val sourceApp: String,
+    val events: Int,
+    /** Memory notes deleted because every event they were derived from is gone. */
+    val notes: Int,
+    /** Id of the TOMBSTONE event recording the purge. */
+    val tombstoneId: String,
+)

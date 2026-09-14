@@ -37,8 +37,9 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | `core/perception` | Normalisers from platform snapshots to ledger events. JVM, tested. |
 | `core/triage` | The five-way triage decision and structured field extraction. JVM, tested. |
 | `core/entities` | People across apps, threads, recurring charges. JVM, tested. |
-| `core/cognition` | Context slices, untrusted envelopes, the Claude client, the brief planner. JVM, tested. |
+| `core/cognition` | Context slices, untrusted envelopes, the Claude client, the agent's wake loop and tool surface, the brief planner, memory. JVM, tested. |
 | `core/audio` | When transcription may run: off-limits rules, daily budget, participant rule. JVM, tested. |
+| `core/tasks` | The unit of work that survives a wake and a restart: tasks as ledger events, mandates, signals, the waker. JVM, tested. |
 | `core/policy` | The security boundary: action classification, autonomy levels, hard limits in code, the trust ladder, onboarding. JVM, tested. |
 | `core/actuation` | Actions, connectors, the executor with holds and undo, the email connector. JVM, tested. |
 | `core/style` | How the user writes to each relationship class; a gate on drafts. JVM, tested. |
@@ -46,6 +47,7 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | `core/money`, `core/logistics`, `core/voice`, `core/profile` | Domain logic: money, deliveries and travel, voice commands, profile bootstrap. JVM, tested. |
 | `eval/replay` | Replay a ledger through triage and score it against labels. |
 | `eval/injection` | The injection corpus and the proof that policy stops every case. |
+| `eval/mandate` | The mandate corpus: jobs that try to exceed the authority they were given, and the proof that none of them runs. |
 | `eval/metrics` | The success metrics and the gate report from a ledger. |
 | `wear/` | The Pixel Watch app. Built with the Android SDK on the host. |
 | `core/android` | The buddy system app, including the surface (the chat, the creature, onboarding). Built by Soong inside the GrapheneOS tree. |

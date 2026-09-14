@@ -86,7 +86,10 @@ time**.
 
 ## 2. The gap, stated plainly
 
-Today the agent side of buddy is four unrelated calls (doc 01, "Cognition"):
+This section describes the code as it was when the design was written. Steps 1 to 5 and
+7 of the build order are now built; section 11 says what runs today and what does not.
+
+Before this doc, the agent side of buddy was four unrelated calls (doc 01, "Cognition"):
 
 | Loop | Trigger | State carried between runs |
 |---|---|---|
@@ -95,7 +98,7 @@ Today the agent side of buddy is four unrelated calls (doc 01, "Cognition"):
 | Brief | 07:30 and 19:30 | none |
 | Memory | idle | notes, but nothing reads them back |
 
-Consequences, all of them visible in the code as it stands:
+Consequences, each of which was visible in the code:
 
 1. **`ACT_NOW` does not act now.** A time-sensitive question waits for the next cycle,
    up to twelve hours. The class exists; the scheduler ignores it.
@@ -346,16 +349,38 @@ What is missing is the loop above the pieces:
 ## 11. Build order
 
 Each step is shippable and testable on its own; each has an eval before it ships.
+Steps 1 to 5 and 7 are built and tested on the JVM; step 6 is the one that needs the
+phone.
 
-| Step | What | Eval |
-|---|---|---|
-| 1 | `core/tasks`: Task, state machine, `TASK` events, fold, journal | State-machine truth tables; a task survives a simulated process death and resumes |
-| 2 | Wake scheduler: `WORK` and `TASK_DUE` first, then `SIGNAL` | `ACT_NOW` acts within a minute in replay |
-| 3 | Mandate in the policy engine, before the existing rules | A **mandate corpus**, like the injection corpus: proposals outside their mandate, none of which may return `Run`, at maximum trust |
-| 4 | Tool surface: `recall`, `read_thread`, `note_state`, `wait_for`, `block`, `finish` | Slice size per task drops; brief quality holds against the labelled set |
-| 5 | Memory provenance, reversal, promotion | A reversal corpus: contradicting statements, where the retired note must not be retrieved |
-| 6 | `drive_app` loop, then `speak_to` | Recipe drift aborts to BLOCKED; no vision step ever enters a credential |
-| 7 | `forget(source)` and the tombstone | After forget, no event, note, or index row from that source is retrievable |
+| Step | What | State | Eval |
+|---|---|---|---|
+| 1 | `core/tasks`: Task, state machine, `TASK` events, fold, journal | **Done** | State-machine truth table; a task survives a new connection to the same database and resumes from its working set |
+| 2 | Wake scheduler: `WORK`, `TASK_DUE`, `SIGNAL`, the stale sweep | **Done** | `Waker` fires due and signalled tasks; `Ingest` wakes the agent on `ACT_NOW` within the minute |
+| 3 | Mandate in the policy engine, before the existing rules | **Done** | `eval/mandate`: ten jobs that exceed their authority, none of which may return `Run` at maximum trust, each caught by the mandate itself and each passing once the mandate is widened |
+| 4 | Tool surface: `recall`, `read_thread`, `open_task`, `note_state`, `wait_for`, `block`, `finish` | **Done** | The wake slice carries the working set, not the transcript; `recall` never returns a retired note |
+| 5 | Memory provenance, reversal, promotion | **Provenance and reversal done**; promotion to the profile is still by hand | A four-case reversal corpus: the retired note leaves retrieval, stays in the record, and is never shown to the next consolidation |
+| 6 | `drive_app` loop, then `speak_to` | **Not started** | Recipe drift aborts to BLOCKED; no vision step ever enters a credential |
+| 7 | `forget(source)` and the tombstone | **Done** | After forget, no event, note, or index row from that source is retrievable, and the ledger is append-only again |
+
+### What the phone runs today
+
+`Brain` builds the agent at first unlock; `Ingest` wakes it on act-now work and on any
+event a parked task registered a signal for; the five-minute alarm that releases held
+actions also fires due tasks and sweeps stale ones; the morning and evening cycles are
+now a `CYCLE` wake before the brief is written. A blocked task renders in the surface
+as the decision it is, and answering it resumes the job. An utterance the command
+parser does not recognise is no longer "I didn't understand that": it goes to the
+agent as a `USER_TURN` wake.
+
+### What is not built
+
+- **`drive_app` and `speak_to`.** `RecipeRunner` and `VisionFallback` both exist and
+  neither is wired into the tool surface yet, so the agent's reach is still the
+  connectors.
+- **A note is promoted to the profile by hand.** The evidence is recorded; the
+  promotion step in section 6 is not automated.
+- **Nothing has run against the real API.** Every test drives a scripted agent. The
+  first real wake on a phone is where the prompt earns or loses its keep.
 
 ## 12. Decisions this doc makes
 

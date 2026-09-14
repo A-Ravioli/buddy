@@ -6,6 +6,7 @@ import android.os.HandlerThread
 import android.util.Log
 import buddy.android.BuddyApp
 import buddy.android.cognition.Brain
+import buddy.android.cognition.Wakes
 import buddy.android.ledger.LedgerHolder
 import buddy.ledger.Event
 
@@ -59,13 +60,18 @@ object Ingest {
      */
     private fun triage(events: List<Event>) {
         val recorder = Brain.triage ?: return
+        val decisions = HashMap<String, buddy.triage.TriageDecision>(events.size)
         for (e in events) {
             try {
-                recorder.process(e, Brain.profile)
+                recorder.process(e, Brain.profile)?.let { decisions[e.id] = it }
             } catch (t: Throwable) {
                 Log.w(BuddyApp.TAG, "triage failed for ${e.id}", t)
             }
         }
+        // Work now means now (docs/07, section 5): an act-now item wakes the agent
+        // within the minute rather than waiting for the next planning cycle, and an
+        // event a parked task was waiting for wakes that task.
+        Wakes.onEvents(events, decisions)
     }
 
     private const val MAX_PENDING = 5000
