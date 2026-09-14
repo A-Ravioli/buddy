@@ -19,6 +19,7 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | [docs/04-domain-playbooks.md](docs/04-domain-playbooks.md) | Per-domain behaviour: email, messaging, calendar, money, travel, calls, and more |
 | [docs/05-roadmap.md](docs/05-roadmap.md) | Phased build plan with milestones, metrics, and repo layout |
 | [docs/06-open-questions.md](docs/06-open-questions.md) | Decisions made, what is still open, and known risks |
+| [docs/07-holistic-agent.md](docs/07-holistic-agent.md) | The continuous agent: tasks, mandates, wakes, compiled memory, reach; what Instinct got right and wrong |
 | [docs/phase-0.md](docs/phase-0.md) | Phase 0 status: what exists, what is verified, what needs the build host or the phone |
 | [docs/phase-1.md](docs/phase-1.md) | Phase 1 status: triage, entities, the brief, the audio gate, the eval harness |
 | [docs/phase-2.md](docs/phase-2.md) | Phase 2 status: policy engine, actuation, connectors, the act loop, style, memory |
