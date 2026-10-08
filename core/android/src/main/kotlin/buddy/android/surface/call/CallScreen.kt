@@ -69,7 +69,10 @@ fun CallScreen(call: CallUi, onAnswer: () -> Unit, onEnd: () -> Unit, onMute: ()
             .padding(horizontal = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.size(48.dp))
+        // The name floats a little above the middle rather than sitting at the top: on a
+        // ringing phone it is the only thing being read, and a screen with a hole in the
+        // middle of it reads as something still loading.
+        Spacer(Modifier.weight(0.85f))
         Creature(
             mood = if (ringing) Mood.NEEDS_YOU else Mood.HOLDING,
             gaze = Gaze.DOWN,

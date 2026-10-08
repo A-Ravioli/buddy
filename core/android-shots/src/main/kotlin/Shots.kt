@@ -12,6 +12,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import buddy.android.surface.call.CallScreen
+import buddy.android.surface.call.CallUi
+import buddy.android.surface.call.Phase
 import buddy.android.surface.creature.Creature
 import buddy.android.surface.creature.Mood
 import buddy.android.surface.home.Affordance
@@ -38,9 +41,16 @@ import buddy.android.surface.theme.SurfaceDomain
 import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 
-/** Renders the app's screens on the JVM, the way the phone would draw them. */
+/**
+ * Renders the app's screens on the JVM, the way the phone would draw them.
+ *
+ * A second argument of `--frames` also writes the wake-up as a dense frame sequence into
+ * `wake-frames/`, which is what the README's animation is made of. It is off by default
+ * because it renders in real time and writes a hundred files.
+ */
 fun main(args: Array<String>) {
     val out = File(args.firstOrNull() ?: "shots").apply { mkdirs() }
+    val frames = args.contains("--frames")
     val ctx: Context = object : ContextWrapper(null) {
         override fun getApplicationContext(): Context = this
         override fun getFilesDir(): File = File(out, "files").apply { mkdirs() }
@@ -94,6 +104,22 @@ fun main(args: Array<String>) {
     shot("06-home-green", Palettes.green, content = home(morning, Mood.NEEDS_YOU))
     shot("07-quiet-mono", Palettes.mono, content = home(quiet, Mood.RESTING))
 
+    // The call. buddy holds the dialer role and the phone app is not in the image, so this
+    // is the only call screen on the device.
+    shot("40-call-ringing", Palettes.colour()) {
+        CallScreen(
+            CallUi("Priya", "+44 7700 900123", Phase.RINGING, connectedAt = 0L, muted = false, speaker = false),
+            onAnswer = {}, onEnd = {}, onMute = {}, onSpeaker = {},
+        )
+    }
+    shot("41-call-active", Palettes.colour()) {
+        CallScreen(
+            CallUi("Sam", "+44 7700 900456", Phase.ACTIVE, connectedAt = System.currentTimeMillis() - 192_000L, muted = false, speaker = true),
+            onAnswer = {}, onEnd = {}, onMute = {}, onSpeaker = {},
+        )
+    }
+
+
     // The wake-up, sampled over real time: the effect uses delays, the animations use the frame clock.
     run {
         val scene = ImageComposeScene(width = 780, height = 1688, density = Density(2f)) {
@@ -115,6 +141,37 @@ fun main(args: Array<String>) {
         }
         scene.close()
     }
+
+    // The same wake-up as a frame sequence, for the animation in the README. One scene
+    // rendered against the wall clock: the sequence uses delays as well as the frame
+    // clock, so it cannot be stepped faster than it really runs. A frame costs more than
+    // the interval asked for, so each one carries the millisecond it was taken at and
+    // whatever assembles them can play them back at the speed they happened.
+    if (frames) {
+        val dir = File(out, "wake-frames").apply { mkdirs() }
+        // Half the size of a still, and one pixel per dp: a frame then costs about a
+        // third of what a still does, which is the difference between a sequence at 9 and
+        // at 25 a second. The animation is shown small anyway.
+        val scene = ImageComposeScene(width = 390, height = 844, density = Density(1f)) {
+            CompositionLocalProvider(LocalContext provides ctx) { BuddyTheme(Palettes.mono) { Onboarding(onFinished = {}) } }
+        }
+        val start = System.nanoTime()
+        var i = 0
+        var nextAt = 0L
+        while (true) {
+            val ms = (System.nanoTime() - start) / 1_000_000L
+            val img = scene.render(System.nanoTime() - start)
+            if (ms >= nextAt) {
+                File(dir, "%03d-%dms.png".format(i++, ms)).writeBytes(img.encodeToData(EncodedImageFormat.PNG)!!.bytes)
+                nextAt = ms + 60
+            }
+            if (ms > 5_400) break
+            Thread.sleep(8)
+        }
+        scene.close()
+        println("wrote $i wake frames")
+    }
+
     // The lock screen (patch 0015): what a locked phone shows once SystemUI hosts
     // BuddyFaceView. Drawn here with the Compose creature, which reads the same
     // FaceGeometry the View does, so this is the face the keyguard will draw.
