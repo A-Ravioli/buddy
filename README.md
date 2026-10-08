@@ -8,6 +8,75 @@ produce, holds the full context of your life, and acts on your behalf. Email, me
 calendar, deliveries, bills, bookings, social: handled in the background. You hear from
 the phone only when it needs a decision from you, and it tries to make that rare.
 
+## What it looks like
+
+Nothing below is a mockup. `core/android-shots` draws the real screens from the app's own
+source on a host, so these are the screens the phone draws, rendered by the same code.
+
+<table>
+<tr>
+<td width="50%" align="center"><img src="docs/shots/wake.gif" width="260" alt="The first run: the whole screen is buddy's colour, two eyes appear, the ground comes in from the outside and leaves him as a blob in the middle"></td>
+<td width="50%" align="center"><img src="docs/shots/boot.gif" width="300" alt="Power-on: the strokes fade up shut on black, the body grows out behind them, the eyes open"></td>
+</tr>
+<tr>
+<td align="center"><b>The first run.</b> The whole screen is him. Two eyes open, the ground comes in from the outside, and what is left is a creature in the middle of the phone.</td>
+<td align="center"><b>Power-on.</b> The boot animation is drawn from the same geometry as the face, and ends on the frame the lock screen starts with.</td>
+</tr>
+</table>
+
+### The home is a conversation, not a grid
+
+![The home: a morning brief with two decisions, the quiet state, and the timeline](docs/shots/home.png)
+
+Left: the morning brief — a calendar decision and a reply to a close contact, each one tap
+to resolve, and a count of what was handled without you. Middle: the usual state, which is
+nothing needing you. Right: everything buddy did, with an undo on each line.
+
+### A locked phone says one thing
+
+![The lock screen: resting, something waiting, and quiet hours](docs/shots/lock.png)
+
+Whether anything needs you, and that is all: no clock, no notification list, no shortcuts.
+At rest he breathes and blinks; when something is waiting the eyes lift and the glow warms;
+during quiet hours they are shut. No count, no preview, no sender — the eyes lifting is the
+notification.
+
+### The phone is still a phone
+
+![A call ringing, and a call in progress](docs/shots/call.png)
+
+buddy holds the dialer role and there is no phone app in the image, so this is the only
+call screen on the device. People who matter arrive by name, from the entity graph;
+everyone else arrives honestly as a number.
+
+### Moving in
+
+![Four steps of the walk-through: Hi, getting online, bringing your life over, and how much rope](docs/shots/onboarding.png)
+
+There is no setup wizard: buddy is it. He gets the phone online, takes the first PIN that
+the ledger's key is bound to, and hands you the two things no app can do for anyone —
+carrying your number over and signing in. Everything else about you he works out by
+reading what is already on the phone.
+
+### Three schemes
+
+![The same home screen in the many-colour, black and white, and green schemes](docs/shots/schemes.png)
+
+One colour per domain, so a blue card is always calendar and amber is always money.
+
+<details>
+<summary>Rendering these yourself</summary>
+
+```
+./gradlew -Pshots :core:android-shots:run --args="shots --frames"
+```
+
+Writes every screen as a PNG, and with `--frames` the wake-up as a timestamped frame
+sequence. It renders the wake in real time, because the sequence uses delays as well as
+the frame clock, so that run takes about as long as the animation does.
+
+</details>
+
 The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 
 | Doc | What it covers |
@@ -52,6 +121,7 @@ The plan lives in `docs/`; Phase 0 code is under way. Read the plan in order:
 | `wear/` | The Pixel Watch app. Built with the Android SDK on the host. |
 | `core/android` | The buddy system app, including the surface (the chat, the creature, onboarding). Built by Soong inside the GrapheneOS tree. |
 | `core/android-verify` | Compiles the system app on the host against the full framework jar and the Compose API, and runs its JVM-testable parts, so CI catches errors in it without the platform tree. |
+| `core/android-shots` | Draws the app's screens on the host from the same sources, which is where the images above come from. Opt-in with `-Pshots`. |
 | `platform/` | Product config, overlays, permissions, SELinux, patch specs, build scripts. |
 | `Android.bp` | Soong modules for the app and its config, read when this repo is `vendor/buddy`. |
 
