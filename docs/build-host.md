@@ -5,6 +5,7 @@ phone, in the order it can be answered. Each row is a `VERIFY` comment somewhere
 source; the command is what settles it.
 
 Set up first: `platform/scripts/setup-host.sh`, then `platform/scripts/sync.sh <tag>`.
+For a Pixel 7, `export BUDDY_DEVICE=panther` before any of it.
 `$BUDDY_TREE` is the checkout (default `~/grapheneos`).
 
 ## 1. After the sync, before the first build
@@ -13,13 +14,13 @@ These are all reading the tree. None of them need a build.
 
 | # | Question | Where it is asked | Command |
 |---|---|---|---|
-| 1 | Is `aosp_mustang.mk` the product to inherit? | `platform/product/buddy_mustang.mk:8` | `ls $BUDDY_TREE/device/google/mustang/*.mk` |
+| 1 | Is `aosp_<codename>.mk` the product to inherit? | `platform/product/buddy_mustang.mk:5`, `platform/product/buddy_panther.mk:9` | `ls $BUDDY_TREE/device/google/mustang/*.mk $BUDDY_TREE/device/google/pantah/*.mk` |
 | 2 | What are the androidx Compose prebuilt module names? | `Android.bp` (static_libs) | `grep -rn 'name: "androidx.compose' $BUDDY_TREE/prebuilts/sdk/current/androidx/Android.bp \| head -20` |
 | 3 | What is the setup wizard's Soong module called? | `Android.bp` (`overrides`), `platform/patches/README.md` 0014 | `grep -rn 'name: "SetupWizard\|name: "Provision\|name: "Launcher3' $BUDDY_TREE/packages/apps $BUDDY_TREE/vendor 2>/dev/null \| head` |
 | 4 | Which resource carries the Updater's release URL? | `platform/overlay/packages/apps/Updater/res/values/config.xml` | `cat $BUDDY_TREE/packages/apps/Updater/res/values/config.xml` |
 | 5 | What key names does the release signing expect? | `platform/scripts/keys.sh:18` | `grep -rn 'avb\|releasekey\|generate_key' $BUDDY_TREE/script/*.sh \| head -20` |
-| 6 | How does a `system_ext` app get marked persistent on this release? | `platform/product/buddy_mustang.mk:47` | `grep -rn 'FLAG_PERSISTENT' $BUDDY_TREE/frameworks/base/services/core/java/com/android/server/pm/*.java \| head` |
-| 7 | Which partition does surfaceflinger read the boot animation from first? | `platform/product/buddy_mustang.mk:32` | `grep -n 'bootanimation.zip' $BUDDY_TREE/frameworks/base/cmds/bootanimation/BootAnimation.cpp` |
+| 6 | How does a `system_ext` app get marked persistent on this release? | `platform/product/buddy_common.mk:37` | `grep -rn 'FLAG_PERSISTENT' $BUDDY_TREE/frameworks/base/services/core/java/com/android/server/pm/*.java \| head` |
+| 7 | Which partition does surfaceflinger read the boot animation from first? | `platform/product/buddy_common.mk:21` | `grep -n 'bootanimation.zip' $BUDDY_TREE/frameworks/base/cmds/bootanimation/BootAnimation.cpp` |
 | 8 | What is `LockPatternUtils.setLockCredential`'s signature? | `surface/setup/LockCredential.kt:35` | `grep -n 'setLockCredential' $BUDDY_TREE/frameworks/base/core/java/com/android/internal/widget/LockPatternUtils.java` |
 | 9 | Do the lock-screen secure settings still have these names? | `surface/lockscreen/LockscreenPolicy.kt:21` | `grep -n 'LOCK_SCREEN_SHOW_NOTIFICATIONS\|LOCKSCREEN_SHOW_CONTROLS\|LOCK_SCREEN_SHOW_QR_CODE_SCANNER' $BUDDY_TREE/frameworks/base/core/java/android/provider/Settings.java` |
 | 10 | Is `addNetwork` + `NETWORK_SETUP_WIZARD` still the wizard's own path? | `surface/setup/WifiJoiner.kt:35` | `grep -rn 'NETWORK_SETUP_WIZARD' $BUDDY_TREE/packages/modules/Wifi/framework/java/android/net/wifi/WifiManager.java` |
@@ -38,6 +39,7 @@ structural is already compiled and unit-tested on the host.
 Then, in order:
 
 1. Patch 0007, the one-line BoardConfig include, so the SELinux app context is built.
+   `build.sh` applies it; check its log line names the right BoardConfig.
 2. `platform/patches/0015-lockscreen/apply.sh --write`, once row 11 says the candidate is
    the right file, plus the Kotlin side it prints.
 3. `platform/scripts/vendor-face.sh --check` — should say the tree's copy is current.

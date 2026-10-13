@@ -19,7 +19,7 @@ changes in Phase 0 is small.
 | 0004 | Input injection | **no patch**: `INJECT_EVENTS` is signature-level; platform-signed apps hold it via the privapp list (Phase 2) | `config/` |
 | 0005 | Both sides of phone calls | **no patch**: `CAPTURE_AUDIO_OUTPUT` for the platform-signed dialer via the privapp list (Phase 1) | `config/` |
 | 0006 | Hotword on the DSP | **no patch**: the voice interaction service uses `AlwaysOnHotwordDetector` (Phase 1) | app |
-| 0007 | SELinux additions hooked into the device board config | patch | `device/google/mustang/BoardConfig.mk` |
+| 0007 | SELinux additions hooked into the device board config | tree edit by `0007-boardconfig/apply.sh`, run by `build.sh` | the device's `BoardConfig.mk` |
 | 0008 | Content capture for secure windows and opted-out apps | patch | `frameworks/base` |
 | 0009 | Playback capture for opted-out apps | patch | `frameworks/base`, `frameworks/av` |
 | 0010 | Concurrent low-priority ambient mic stream | patch, maybe | `frameworks/av` |
@@ -31,11 +31,16 @@ changes in Phase 0 is small.
 
 ## 0007: board config hook
 
-One line appended to `device/google/mustang/BoardConfig.mk`:
+One line appended to the BoardConfig the device builds with:
 
 ```
 -include vendor/buddy/platform/product/BoardConfigBuddy.mk
 ```
+
+`0007-boardconfig/apply.sh` finds that file for `BUDDY_DEVICE` (`device/google/mustang/`
+for the Pixel 10 Pro XL; `device/google/pantah/panther/` for the Pixel 7, whose tree is
+shared with the 7 Pro), appends the line if it is not there, and refuses to guess when it
+finds no BoardConfig. `scripts/build.sh` runs it before every platform build.
 
 Verify: `m selinux_policy` succeeds and `ls $OUT/system_ext/etc/selinux/` includes the
 buddy `seapp_contexts` entry (grep for `app.buddy` in the built `plat_seapp_contexts` or
