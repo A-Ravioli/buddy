@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build a signed buddy release:
 #   1. the JVM tests
-#   2. the platform build for buddy_mustang (which compiles the app with Soong)
+#   2. the platform build for buddy_$BUDDY_DEVICE (which compiles the app with Soong)
 #   3. signing and release packaging with GrapheneOS's scripts
 #
 #   scripts/build.sh                # full
@@ -51,6 +51,9 @@ fi
 if [[ -d frameworks/base/packages/SystemUI/src/com/android/systemui/buddy ]]; then
     "$BUDDY_SRC/platform/scripts/vendor-face.sh"
 fi
+
+# Patch 0007: the BoardConfig include that builds buddy's SELinux additions. Idempotent.
+"$BUDDY_SRC/platform/patches/0007-boardconfig/apply.sh"
 
 log "platform build: buddy_${BUDDY_DEVICE}-cur-user, BUILD_NUMBER=$BUILD_NUMBER"
 # shellcheck disable=SC1091

@@ -3,7 +3,7 @@
 #
 #   scripts/sync.sh 2026081300
 #
-# Picks the tag from https://grapheneos.org/releases for mustang. Verifies the signed
+# Pick the tag from https://grapheneos.org/releases for $BUDDY_DEVICE. Verifies the signed
 # tag before trusting it.
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
@@ -41,10 +41,10 @@ echo "$TAG" > .buddy-base-tag
 
 log "sync complete. Things to verify against this tag before building:"
 for f in \
-    "device/google/$BUDDY_DEVICE" \
+    "$BUDDY_DEVICE_TREE" \
     "frameworks/base/core/res/res/values/config.xml" \
     "packages/apps/Updater/res/values/config.xml"; do
     if [[ -e "$f" ]]; then echo "  ok      $f"; else echo "  MISSING $f"; fi
 done
 echo "  grep -n 'config_defaultContentCaptureService\|config_defaultAssistant\|config_defaultSms\|config_defaultDialer\|config_defaultCallScreening\|config_defaultListenerAccessPackages' frameworks/base/core/res/res/values/config.xml"
-echo "  ls device/google/$BUDDY_DEVICE/*.mk   # confirm the product makefile inherited by vendor/buddy/platform/product/buddy_$BUDDY_DEVICE.mk"
+echo "  ls $BUDDY_DEVICE_TREE/*.mk   # confirm the product makefile inherited by vendor/buddy/platform/product/buddy_$BUDDY_DEVICE.mk"

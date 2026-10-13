@@ -6,7 +6,8 @@
 #   scripts/flash.sh releases/<device>-factory-<build>.zip
 #
 # Requires the phone in fastboot mode (power + volume down) with OEM unlocking enabled
-# in developer settings beforehand.
+# in developer settings beforehand. Runs on Linux or macOS; set BUDDY_DEVICE for anything
+# other than mustang, and BUDDY_KEYS if the keys are not under $BUDDY_TREE/keys/<device>.
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
 ZIP="${1:-}"
@@ -22,6 +23,12 @@ DIR="$(find "$WORK" -maxdepth 1 -mindepth 1 -type d | head -n1)"
 
 log "waiting for a device in fastboot"
 fastboot devices | grep -q . || die "no device in fastboot mode"
+
+# A factory image for one Pixel flashed onto another bricks nothing but wastes the wipe;
+# refuse before unlocking rather than after.
+PRODUCT="$(fastboot getvar product 2>&1 | awk '/^product:/ {print $2}')"
+[[ "$PRODUCT" == "$BUDDY_DEVICE" ]] || die "phone reports product '$PRODUCT', this is a $BUDDY_DEVICE build"
+[[ "$(basename "$ZIP")" == "$BUDDY_DEVICE"* ]] || die "$(basename "$ZIP") is not a $BUDDY_DEVICE factory image"
 
 read -r -p "This wipes the phone. Type the device codename ($BUDDY_DEVICE) to continue: " CONFIRM
 [[ "$CONFIRM" == "$BUDDY_DEVICE" ]] || die "aborted"

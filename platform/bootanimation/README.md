@@ -21,7 +21,7 @@ It ends on the same frame the lock screen begins with — a blob on black, resti
 cold boot is one movement rather than an animation that stops and a screen that starts.
 
 `scripts/build.sh` runs the task and copies the zip into `vendor/buddy` in the tree;
-`platform/product/buddy_mustang.mk` copies it from there into `/product/media`. A tree
+`platform/product/buddy_common.mk` copies it from there into `/product/media`. A tree
 without it builds anyway and warns, falling back to the base animation.
 
 The zip is not committed. It is a render of the geometry, and the geometry is the source.
